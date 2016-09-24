@@ -17,6 +17,15 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+//I wrote this//
+typedef struct{
+	uint32_t* word;
+	char* byte;
+}HybridSP;
+
+
+
+
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -25,32 +34,32 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
    thread id, or TID_ERROR if the thread cannot be created. */
-tid_t
-process_execute (const char *file_name) 
-{
-	printf("%s",file_name);
-  char *fn_copy;
-  tid_t tid;
+tid_t process_execute (const char *file_name) {
+  	char *fn_copy;
+  	tid_t tid;
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
-  fn_copy = palloc_get_page (0);
-  if (fn_copy == NULL)
-    return TID_ERROR;
-  strlcpy (fn_copy, file_name, PGSIZE);
+  	fn_copy = palloc_get_page (0);
+  	if (fn_copy == NULL)
+    		return TID_ERROR;
+  	strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  if (tid == TID_ERROR)
-    palloc_free_page (fn_copy); 
-  return tid;
+  	tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  	if (tid == TID_ERROR)
+    		palloc_free_page (fn_copy); 
+  	return tid;
 }
+
+
+
+
+
 
 /* A thread function that loads a user process and starts it
    running. */
-static void
-start_process (void *file_name_)
-{
+static void start_process (void *file_name_){
   char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
@@ -196,7 +205,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp);
+static bool setup_stack (void **esp,char* file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -303,7 +312,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  if (!setup_stack (esp,file_name))
     goto done;
 
   /* Start address. */
@@ -427,9 +436,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
-static bool
-setup_stack (void **esp) 
-{
+static bool setup_stack (void **esp, char* command) {
+	printf("i am in setup_stack\n");	
   uint8_t *kpage;
   bool success = false;
 
@@ -437,9 +445,55 @@ setup_stack (void **esp)
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE - 12;
-      else
+      if (success){
+        *esp = PHYS_BASE;
+        char* save_ptr;
+        char* token;
+        int argc=0;
+	//char** argvs=(char**)palloc_get_page(PAL_USER | PAL_ZERO);
+	//int i=0;
+	int commandLen=0;
+        for(token=strtok_r((char*)command," ",&save_ptr);token!=NULL;token=strtok_r(NULL," ",&save_ptr)){
+		//char* arg=(char*)palloc_get_page(PAL_USER | PAL_ZERO);
+		int len=strlen(token)+1;
+		commandLen=commandLen+len;
+		char* temp=(*esp)-len;
+		strlcpy(temp, token, len-1);
+	//	argvs[i]=arg;
+		argc++;
+		*esp=temp;
+	//	i++;
+        }
+	int padding=0;
+	while((commandLen+padding)%4!=0){
+		padding++;
+	}
+	/*commandLen=0;
+	for(int k=i-1;k>=0;k--){
+		int len=strlen(argvs[k]);
+		char* temp=(*esp)-len-1;
+		strlcpy(temp,argvs[k],len+1);
+		*esp=temp;	
+	}*/
+	if(padding!=0){
+		char* temp=*esp-padding;
+		for(int k=0;k<padding;k++){
+		temp[k]=0;
+		}
+		*esp=temp;
+	}
+	
+
+
+
+
+
+
+	}
+      
+
+
+	else
         palloc_free_page (kpage);
     }
   return success;
