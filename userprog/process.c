@@ -19,9 +19,12 @@
 #include "threads/vaddr.h"
 //I wrote this//
 typedef struct{
-	uint32_t* word;
-	char* byte;
-}HybridSP;
+	char* fileName;
+	char* args;
+	int fileLen;
+	//semaphore
+}parentStruct;
+
 
 
 
@@ -46,9 +49,18 @@ tid_t process_execute (const char *file_name) {
   	strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
-  	tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  	if (tid == TID_ERROR)
+  	printf("%s is the file_name I am in process_execute\n",file_name);
+        parentStruct* comm=(parentStruct*)palloc_get_page(0);
+	if(comm==NULL){
+		return TID_ERROR;//fix this
+	} 
+	/*comm->fileName=strtok_r(file_name," ",&(comm->args));
+        comm->fileLen=strlen(comm->fileName)+1;
+	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);*/
+  	tid = thread_create (file_name, PRI_DEFAULT, start_process, file_name);
+	if (tid == TID_ERROR)
     		palloc_free_page (fn_copy); 
+        /* sema_down: wait on semphore */
   	return tid;
 }
 
@@ -75,7 +87,7 @@ static void start_process (void *file_name_){
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
-
+  /* sema up on semphore cr_done */
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -205,7 +217,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp,char* file_name);
+static bool setup_stack (void **esp,const char* file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -436,8 +448,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
-static bool setup_stack (void **esp, char* command) {
-	printf("i am in setup_stack\n");	
+static bool setup_stack (void **esp, const char* command) {
+	//printf("i am in setup_stack\n");	
   uint8_t *kpage;
   bool success = false;
 
