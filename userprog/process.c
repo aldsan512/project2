@@ -217,7 +217,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp,const char* file_name);
+static bool setup_stack (void **esp, const char* file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -488,9 +488,10 @@ static bool setup_stack (void **esp, const char* command) {
 		*esp=temp;	
 	}*/
 	if(padding!=0){
-		char* temp=*esp-padding;
-		for(int k=0;k<padding;k++){
-		temp[k]=0;
+		char* temp = (*esp) - padding;
+		int k;
+		for(k=0;k<padding;k++){
+			temp[k]=0;
 		}
 		*esp=temp;
 	}
