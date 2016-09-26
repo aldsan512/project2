@@ -148,8 +148,8 @@ syscall_handler (struct intr_frame *f) {
 	uint32_t return_address = *sp;
 
 	sp += 3;
-	uint32_t* num_ptr = *sp;
-	uint32_t sys_call = *num_ptr;
+	char* num_ptr = *sp;
+	uint32_t sys_call = atoi(num_ptr);
 
 	sp++;
 	argv0 = *sp;
