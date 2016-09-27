@@ -17,6 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/synch.h"
 //I wrote this//
 typedef struct{
 	char* fileName;
@@ -106,9 +107,8 @@ static void start_process (void *file_name_){
 
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
-int
-process_wait (tid_t child_tid UNUSED) 
-{
+int process_wait (tid_t child_tid UNUSED) {
+	
 	//while(1){}
 	struct thread* t1 = thread_current();
 	lock_acquire(&t1->child_lock);
