@@ -465,52 +465,58 @@ static bool setup_stack (void **esp, void* command) {
         int argc=1;
 	parentStruct* myStruct=(parentStruct*)command;
 	char* temp=((char*)(*esp))-(myStruct->fileLen);
-	strlcpy(temp,myStruct->fileName,myStruct->fileLen-1);
-	hex_dump();		
+	strlcpy(temp,myStruct->fileName,myStruct->fileLen);
 	*esp=(void*)temp;
 	int commandLen=myStruct->fileLen;
         for(token=strtok_r(myStruct->args," ",&save_ptr);token!=NULL;token=strtok_r(NULL," ",&save_ptr)){
-		//char* arg=(char*)palloc_get_page(PAL_USER | PAL_ZERO);
 		int len=strlen(token)+1;
 		commandLen=commandLen+len;
 		temp=((char*)(*esp))-len;
 		strlcpy(temp, token, len);
-		hex_dump();
-	//	argvs[i]=arg;
 		argc++;
-		*esp=temp;
-	//	i++;
+		*esp=(void*)temp;
         }
 	int padding=0;
 	while((commandLen+padding)%4!=0){
 		padding++;
 	}
-	/*commandLen=0;
-	for(int k=i-1;k>=0;k--){
-		int len=strlen(argvs[k]);
-		char* temp=(*esp)-len-1;
-		strlcpy(temp,argvs[k],len+1);
-		*esp=temp;	
-	}*/
 	if(padding!=0){
 		char* temp = ((char*)(*esp)) - padding;
 		int k;
 		for(k=0;k<padding;k++){
 			temp[k]=0;
 		}
-		*esp=temp;
+		*esp=(void*)temp;
+	}
+	hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
+	int* argPt=(*esp)-4;
+	*argPt=0;
+	char* charPtr=(char*)(argPt+1);
+	charPtr=charPtr+padding;
+	argPt=argPt-1;
+	for(int i=0;i<argc;i++){
+		*argPt=charPtr;
+		int k=0;
+		while(charPtr[k]!=0){
+			printf("%c\n",charPtr[k]);
+			k++;
+		}
+	charPtr=charPtr+k+1;
+	argPt--;
+		
 	}
 	
-
-
-
-
-
-
-	}
-      
-
-
+	*esp=argPt;
+	hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
+	int* temp=argPt;
+	argPt=argPt-1;
+	*argPt=temp;
+	argPt=argPt-1;
+	*argPt=argc;
+	argPt--;
+	*argPt=0;
+	*esp=argPt;	//is this right return addrress???
+     } 
 	else
         palloc_free_page (kpage);
     }
