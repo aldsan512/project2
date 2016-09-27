@@ -508,9 +508,9 @@ static bool setup_stack (void **esp, void* command) {
 	
 	*esp=argPt;
 	hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
-	int* temp=argPt;
+	int* temp_int=argPt;
 	argPt=argPt-1;
-	*argPt=temp;
+	*argPt=temp_int;
 	argPt=argPt-1;
 	*argPt=argc;
 	argPt--;
