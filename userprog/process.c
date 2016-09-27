@@ -31,7 +31,7 @@ typedef struct{
 
 
 static thread_func start_process NO_RETURN;
-static bool load (const char *cmdline, void (**eip) (void), void **esp);
+static bool load (void* cmdline, void (**eip) (void), void **esp);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -54,10 +54,9 @@ tid_t process_execute (const char *file_name) {
 	if(comm==NULL){
 		return TID_ERROR;//fix this
 	} 
-	/*comm->fileName=strtok_r(file_name," ",&(comm->args));
+	comm->fileName=strtok_r(file_name," ",&(comm->args));
         comm->fileLen=strlen(comm->fileName)+1;
-	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);*/
-  	tid = thread_create (file_name, PRI_DEFAULT, start_process, file_name);
+	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);
 	if (tid == TID_ERROR)
     		palloc_free_page (fn_copy); 
         /* sema_down: wait on semphore */
@@ -72,7 +71,7 @@ tid_t process_execute (const char *file_name) {
 /* A thread function that loads a user process and starts it
    running. */
 static void start_process (void *file_name_){
-  char *file_name = file_name_;
+  //char *file_name = file_name_;
   struct intr_frame if_;
   bool success;
 
@@ -81,10 +80,10 @@ static void start_process (void *file_name_){
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (file_name_, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
-  palloc_free_page (file_name);
+  palloc_free_page (file_name_);
   if (!success) 
     thread_exit ();
   /* sema up on semphore cr_done */
@@ -110,7 +109,7 @@ static void start_process (void *file_name_){
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  return -1;
+	while(1){}
 }
 
 /* Free the current process's resources. */
@@ -217,7 +216,7 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-static bool setup_stack (void **esp, const char* file_name);
+static bool setup_stack (void **esp, void* file_name);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
@@ -228,7 +227,7 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
 bool
-load (const char *file_name, void (**eip) (void), void **esp) 
+load (void* file_name, void (**eip) (void), void **esp) 
 {
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
@@ -244,10 +243,12 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
   /* Open executable file. */
-  file = filesys_open (file_name);
+  parentStruct* myStruct =(parentStruct*)file_name;
+
+  file = filesys_open (myStruct->fileName);
   if (file == NULL) 
     {
-      printf ("load: %s: open failed\n", file_name);
+      printf ("load: %s: open failed\n", myStruct->fileName);
       goto done; 
     }
 
@@ -260,7 +261,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       || ehdr.e_phentsize != sizeof (struct Elf32_Phdr)
       || ehdr.e_phnum > 1024) 
     {
-      printf ("load: %s: error loading executable\n", file_name);
+      printf ("load: %s: error loading executable\n",myStruct->fileName);
       goto done; 
     }
 
@@ -324,7 +325,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp,file_name))
+  if (!setup_stack (esp,myStruct))
     goto done;
 
   /* Start address. */
@@ -448,7 +449,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
-static bool setup_stack (void **esp, const char* command) {
+static bool setup_stack (void **esp, void* command) {
 	//printf("i am in setup_stack\n");	
   uint8_t *kpage;
   bool success = false;
@@ -461,16 +462,20 @@ static bool setup_stack (void **esp, const char* command) {
         *esp = PHYS_BASE;
         char* save_ptr;
         char* token;
-        int argc=0;
-	//char** argvs=(char**)palloc_get_page(PAL_USER | PAL_ZERO);
-	//int i=0;
-	int commandLen=0;
-        for(token=strtok_r((char*)command," ",&save_ptr);token!=NULL;token=strtok_r(NULL," ",&save_ptr)){
+        int argc=1;
+	parentStruct* myStruct=(parentStruct*)command;
+	char* temp=((char*)(*esp))-(myStruct->fileLen);
+	strlcpy(temp,myStruct->fileName,myStruct->fileLen-1);
+	hex_dump();		
+	*esp=(void*)temp;
+	int commandLen=myStruct->fileLen;
+        for(token=strtok_r(myStruct->args," ",&save_ptr);token!=NULL;token=strtok_r(NULL," ",&save_ptr)){
 		//char* arg=(char*)palloc_get_page(PAL_USER | PAL_ZERO);
 		int len=strlen(token)+1;
 		commandLen=commandLen+len;
-		char* temp=(*esp)-len;
-		strlcpy(temp, token, len-1);
+		temp=((char*)(*esp))-len;
+		strlcpy(temp, token, len);
+		hex_dump();
 	//	argvs[i]=arg;
 		argc++;
 		*esp=temp;
@@ -488,7 +493,7 @@ static bool setup_stack (void **esp, const char* command) {
 		*esp=temp;	
 	}*/
 	if(padding!=0){
-		char* temp = (*esp) - padding;
+		char* temp = ((char*)(*esp)) - padding;
 		int k;
 		for(k=0;k<padding;k++){
 			temp[k]=0;
