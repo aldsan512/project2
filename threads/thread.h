@@ -96,6 +96,16 @@ struct thread
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+	struct thread *parent;              /* Parent process. */ 
+    struct hash *children;              /* Spawned child processes. */
+    struct lock child_lock;             /* Lock protecting children
+                                           hashtable. */
+    bool child_ready;                   /* True if a child process has
+                                           started. */
+    struct condition child_cond;        /* Conditional variable for
+                                           child_ready. */
+    struct hash *open_files;            /* Files opened by this process. */
+struct file *my_executable; 
 #endif
 
     /* Owned by thread.c. */
