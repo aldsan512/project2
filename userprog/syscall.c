@@ -125,14 +125,9 @@ void close (int fd) {
 
 }
 
-int get_num (void* arg_address) {
-	int* ptr = (int*) arg_address;
-	return *ptr;
-}
-
-tid_t get_tid (void* arg_address) {
-	tid_t* ptr = (tid_t*) arg_address;
-	return *ptr;
+char* get_char(uint32_t* sp){
+	uint32_t address = *sp;
+	return (char*) address;
 }
 
 static void
@@ -145,77 +140,73 @@ syscall_handler (struct intr_frame *f) {
 	tid_t pid;
 
 	uint32_t* sp = f->esp;
-	uint32_t return_address = *sp;
-
-	sp += 3;
-	char* num_ptr = *sp;
-	uint32_t sys_call = atoi(num_ptr);
-
+	uint32_t sys_call = *sp; 	//check that the sys call number is pushed as a stringgedit process.c &
 	sp++;
-	argv0 = *sp;
-	sp++;
-	argv1 = *sp;
-	sp++;
-	argv2 = *sp;
-
+	//set f->eax to result from syscall later
 	switch (sys_call) {
 		case SYS_HALT:                   /* Halt the operating system. */
 			halt ();
 			break;
 		case SYS_EXIT:                   /* Terminate this process. */
-			status = get_num(argv0);
+			status = *sp;
 			exit (status);
 			break;
 		case SYS_EXEC:                   /* Start another process. */
-			command = (char*) argv0;
+			command = get_char(sp);
 			exec (command);
 			break;
 		case SYS_WAIT:                   /* Wait for a child process to die. */
-			pid = get_tid (argv0);
+			pid = *sp;
 			wait (pid);
 			break;
 		case SYS_CREATE:                /* Create a file. */
-			file = (char*) argv0;
-			size = get_num (argv1);
-			create (file, size);
+			file = get_char(sp);
+			sp++;
+			size = *sp;
+			create(file, size);
 			break;
 		case SYS_REMOVE:             /* Delete a file. */
-			file = (char*) argv0;
+			file = get_char(sp);
 			remove (file);
 			break;
 		case SYS_OPEN:               /* Open a file. */
-			file = (char*) argv0;
+			file = get_char(sp);
 			open (file);
 			break;
 		case SYS_FILESIZE:          /* Obtain a file's size. */
-			fd = get_num (argv0);
+			fd = *sp;
 			filesize (fd);
 			break;
 		case SYS_READ:            /* Read from a file. */
-			fd = get_num (argv0);
-			buffer = (char*) argv1;
-			size = get_num (argv1);
+			fd = *sp;
+			sp++;
+			buffer = get_char(sp);
+			sp++;
+			size = *sp;
 			//check if returns -1 and terminate process if so
 			read (fd, buffer, size);
 			break;
 		case SYS_WRITE:             /* Write to a file. */
-			fd = get_num (argv0);
-			buffer = (char*) argv1;
-			size = get_num (argv1);
+			fd = *sp;
+			sp++;
+			buffer = get_char(sp);
+			sp++;
+			size = *sp;
 			//check if returns -1 and terminate process if so
 			write (fd, buffer, size);
 			break;
 		case SYS_SEEK:              /* Change position in a file. */
-			fd = get_num (argv0);
-			position = get_num (argv1);
+			fd = *sp;
+			sp++;
+			position = *sp;
 			seek (fd, position);
 			break;
 		case SYS_TELL:               /* Report current position in a file. */
-			fd = get_num (argv0);
+			fd = *sp;
 			tell (fd);
 			break;
 		case SYS_CLOSE:              /* Close a file. */
-			fd = get_num (argv0);
+			fd = *sp;
 			close (fd);
 			break;
 		//default:
