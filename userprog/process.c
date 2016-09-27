@@ -109,7 +109,23 @@ static void start_process (void *file_name_){
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-	while(1){}
+	//while(1){}
+	struct thread* t1 = thread_current();
+	lock_acquire(&t->child_lock);
+	struct child c1;
+	c1.pid = child_tid;
+	struct hash_elem* e1 = hash_find(t1->children, &c1.elem);
+	if(e == NULL){
+		lock_release(&thread_current()->child_lock);
+		return -1;
+	}
+	struct child* found_child = hash_entry(e1, struct child, elem);
+	while(!found_child->done){
+		cond_wait(&t->child_cond, &t->child_lock);
+	}
+	int exit_status = found_child->exit_status;
+	lock_release(&t->child_lock);
+	return exit_status;
 }
 
 /* Free the current process's resources. */
