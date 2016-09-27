@@ -508,14 +508,14 @@ static bool setup_stack (void **esp, void* command) {
 	
 	*esp=argPt;
 	hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
-	int* temp_int=argPt;
-	argPt=argPt-1;
-	*argPt=temp_int;
+	*argPt=argPt+1;
 	argPt=argPt-1;
 	*argPt=argc;
 	argPt--;
 	*argPt=0;
 	*esp=argPt;	//is this right return addrress???
+	        hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
+
      } 
 	else
         palloc_free_page (kpage);
