@@ -57,6 +57,7 @@ tid_t process_execute (const char *file_name) {
 	} 
 	comm->fileName=strtok_r(file_name," ",&(comm->args));
         comm->fileLen=strlen(comm->fileName)+1;
+	comm->parentLock=(struct semaphore*)palloc_get_page(0);
 	sema_init(comm->parentLock,0);
 	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);
 	sema_down(comm->parentLock);
@@ -71,7 +72,9 @@ tid_t process_execute (const char *file_name) {
 	if(childT->loadSuccess==false){
 		return TID_ERROR;
 	}
+	printf("im about to return");
   	return tid;
+	// must I deallocate semaphore//
 }
 
 
@@ -95,8 +98,9 @@ static void start_process (void *file_name_){
 
   /* If load failed, quit. */
   parentStruct* parent=(parentStruct*)file_name_;
-  palloc_free_page (file_name_);
   sema_up(parent->parentLock);
+  palloc_free_page (file_name_);
+
   if (!success){
 	struct thread* currentT=thread_current();
 	currentT->loadSuccess=false;
