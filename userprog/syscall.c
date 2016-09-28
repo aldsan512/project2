@@ -20,6 +20,7 @@ bool check_page_fault (int fd, struct intr_frame **f) {
 
 //Terminates Pintos by calling shutdown_power_off() (declared in threads/init.h). This should be seldom used, because you lose some information about possible deadlock situations, etc.
 void halt (void) {
+	shutdown_power_off();
 
 }
 
