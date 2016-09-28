@@ -23,7 +23,7 @@ typedef struct{
 	char* fileName;
 	char* args;
 	int fileLen;
-	//semaphore
+	struct semaphore* parentLock;
 }parentStruct;
 
 
@@ -57,10 +57,20 @@ tid_t process_execute (const char *file_name) {
 	} 
 	comm->fileName=strtok_r(file_name," ",&(comm->args));
         comm->fileLen=strlen(comm->fileName)+1;
+	sema_init(comm->parentLock,0);
 	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);
-	if (tid == TID_ERROR)
+	sema_down(comm->parentLock);
+	if (tid == TID_ERROR){
     		palloc_free_page (fn_copy); 
-        /* sema_down: wait on semphore */
+		return TID_ERROR;
+	}
+	struct thread* childT=getThread(tid);
+	if(childT==NULL){
+		return TID_ERROR;
+	}
+	if(childT->loadSuccess==false){
+		return TID_ERROR;
+	}
   	return tid;
 }
 
@@ -84,9 +94,14 @@ static void start_process (void *file_name_){
   success = load (file_name_, &if_.eip, &if_.esp);
 
   /* If load failed, quit. */
+  parentStruct* parent=(parentStruct*)file_name_;
   palloc_free_page (file_name_);
-  if (!success) 
-    thread_exit ();
+  sema_up(parent->parentLock);
+  if (!success){
+	struct thread* currentT=thread_current();
+	currentT->loadSuccess=false;
+	thread_exit ();
+	}
   /* sema up on semphore cr_done */
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -109,8 +124,8 @@ static void start_process (void *file_name_){
    does nothing. */
 int process_wait (tid_t child_tid UNUSED) {
 	
-	//while(1){}
-	struct thread* t1 = thread_current();
+	while(1){}
+/*	struct thread* t1 = thread_current();
 	lock_acquire(&t1->child_lock);
 	struct child c1;
 	c1.pid = child_tid;
@@ -125,7 +140,7 @@ int process_wait (tid_t child_tid UNUSED) {
 	}
 	int exit_status = found_child->exit_status;
 	lock_release(&t1->child_lock);
-	return exit_status;
+	return exit_status;*/
 }
 
 /* Free the current process's resources. */
