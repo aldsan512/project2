@@ -24,6 +24,7 @@ struct file* get_file(int fd){
 
 //Terminates Pintos by calling shutdown_power_off() (declared in threads/init.h). This should be seldom used, because you lose some information about possible deadlock situations, etc.
 void halt (void) {
+	shutdown_power_off();
 
 }
 
