@@ -79,8 +79,17 @@ Each process has an independent set of file descriptors. File descriptors are no
 When a single file is opened more than once, whether by a single process or different processes, each open returns a new file descriptor. Different file descriptors for a single file are closed independently in separate calls to close and they do not share a file position.
 */
 int open (const char *file) {
-	//call filesys open
-	return NULL;
+	struct file* filePt;
+	filePt=filesys_open(file);
+	if(filePt!=NULL){
+		struct thread* thread;
+		thread=thread_current();
+		thread->fileTable[thread->nextfd]=filePt;
+		int fd=theard->nextfd;
+		thead->nextfd=(thread->nextfd+1);
+		return fd;
+	}
+	return -1;	
 }
 
 //Returns the size, in bytes, of the file open as fd.
@@ -97,6 +106,7 @@ int read (int fd, void *buffer, unsigned size) {
 	} else if (fd == 0){
 		//keep doing this until reach EOF or size bytes
 		input_getc();
+		return size;//why???
 	} else{
 		//check if valid here
 		file* file_read = get_file(fd);
