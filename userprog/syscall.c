@@ -18,6 +18,10 @@ bool check_page_fault (int fd, struct intr_frame **f) {
 	return error != 0;
 }
 
+struct file* get_file(int fd){
+	
+}
+
 //Terminates Pintos by calling shutdown_power_off() (declared in threads/init.h). This should be seldom used, because you lose some information about possible deadlock situations, etc.
 void halt (void) {
 
@@ -56,13 +60,13 @@ int wait (tid_t pid) {
 
 //Creates a new file called file initially initial_size bytes in size. Returns true if successful, false otherwise. Creating a new file does not open it: opening the new file is a separate operation which would require a open system call.
 bool create (const char *file, unsigned initial_size) {
-
+	//call filesys create
 	return NULL;
 }
 
 //Deletes the file called file. Returns true if successful, false otherwise. A file may be removed regardless of whether it is open or closed, and removing an open file does not close it. See Removing an Open File, for details.
 bool remove (const char *file) {
-
+	//call filesys remove
 	return NULL;
 }
 
@@ -74,19 +78,30 @@ Each process has an independent set of file descriptors. File descriptors are no
 When a single file is opened more than once, whether by a single process or different processes, each open returns a new file descriptor. Different file descriptors for a single file are closed independently in separate calls to close and they do not share a file position.
 */
 int open (const char *file) {
-
+	//call filesys open
 	return NULL;
 }
 
 //Returns the size, in bytes, of the file open as fd.
 int filesize (int fd) {
-
-	return NULL;
+	file* file_ptr = get_file(fd);
+	return (int) file_ptr->inode->length;
 }
 
 //Reads size bytes from the file open as fd into buffer. Returns the number of bytes actually read (0 at end of file), or -1 if the file could not be read (due to a condition other than end of file). Fd 0 reads from the keyboard using input_getc().
 int read (int fd, void *buffer, unsigned size) {
-	return NULL;
+	int bytes = 0;
+	if (fd == 1){
+		bytes = -1;
+	} else if (fd == 0){
+		//keep doing this until reach EOF or size bytes
+		input_getc();
+	} else{
+		//check if valid here
+		file* file_read = get_file(fd);
+		int bytes = file_read(file, buffer, size);		
+	}
+	return bytes;
 }
 
 /*Writes size bytes from buffer to the open file fd. Returns the number of bytes actually written, which may be less than size if some bytes could not be written.
@@ -95,34 +110,37 @@ Writing past end-of-file would normally extend the file, but file growth is not 
 Fd 1 writes to the console. Your code to write to the console should write all of buffer in one call to putbuf(), at least as long as size is not bigger than a few hundred bytes. (It is reasonable to break up larger buffers.) Otherwise, lines of text output by different processes may end up interleaved on the console, confusing both human readers and our grading scripts.
 */
 int write (int fd, const void *buffer, unsigned size) {
+	int bytes = 0;
 	if (fd == 0) {
-		return -1;
+		bytes = -1;
 	} else if (fd == 1) {
 		putbuf (buffer, size);
+		bytes = size;	//check if this is right
 	} else {
-		//maybe do fd = 2 also
-		//also may not be able to do simple putbuf because fd can be overwritten
+		//check if valid here
+		file* file_write = get_file(fd);
+		int bytes = file_write(fd);
 	}
-	return NULL;
+	return bytes;
 }
 
 /*Changes the next byte to be read or written in open file fd to position, expressed in bytes from the beginning of the file. (Thus, a position of 0 is the file's start.)
 A seek past the current end of a file is not an error. A later read obtains 0 bytes, indicating end of file. A later write extends the file, filling any unwritten gap with zeros. (However, in Pintos files have a fixed length until project 4 is complete, so writes past end of file will return an error.) These semantics are implemented in the file system and do not require any special effort in system call implementation.
 */
 void seek (int fd, unsigned position) {
-
-	return NULL;
+	file* file_ptr = get_file(fd);
+	file_ptr->pos = position;
 }
 
 //Returns the position of the next byte to be read or written in open file fd, expressed in bytes from the beginning of the file.
 unsigned tell (int fd) {
-
-	return NULL;
+	file* file_ptr = get_file(fd);
+	return file_ptr->pos;
 }
 
 //Closes file descriptor fd. Exiting or terminating a process implicitly closes all its open file descriptors, as if by calling this function for each one.
 void close (int fd) {
-
+	//remove file from thread open file list
 }
 
 static void
