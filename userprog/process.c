@@ -55,7 +55,7 @@ tid_t process_execute (const char *file_name) {
 	if(comm==NULL){
 		return TID_ERROR;//fix this
 	} 
-	comm->fileName=strtok_r(file_name," ",&(comm->args));
+	comm->fileName=strtok_r((char*)file_name," ",&(comm->args));
         comm->fileLen=strlen(comm->fileName)+1;
 	comm->parentLock=(struct semaphore*)palloc_get_page(0);
 	sema_init(comm->parentLock,0);
@@ -523,14 +523,14 @@ static bool setup_stack (void **esp, void* command) {
 		}
 		*esp=(void*)temp;
 	}
-	hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
+	//hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
 	int* argPt=(*esp)-4;
 	*argPt=0;
 	char* charPtr=(char*)(argPt+1);
 	charPtr=charPtr+padding;
 	argPt=argPt-1;
 	for(int i=0;i<argc;i++){
-		*argPt=charPtr;
+		*argPt=(int)charPtr;
 		int k=0;
 		while(charPtr[k]!=0){
 			printf("%c\n",charPtr[k]);
@@ -542,8 +542,8 @@ static bool setup_stack (void **esp, void* command) {
 	}
 	
 	*esp=argPt;
-	hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
-	*argPt=argPt+1;
+	//hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
+	*argPt=(int)(argPt+1);
 	argPt=argPt-1;
 	*argPt=argc;
 	argPt--;
