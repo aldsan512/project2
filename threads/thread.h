@@ -93,9 +93,9 @@ struct thread
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 	bool loadSuccess;
-	struct file* fileTable[30];
-	int nextfd;
-	int fileTableSz;
+	struct file* fileTable[30];	//i think this should be 128???
+	int nextfd;	//not needed, this isn't really a stack
+	int fileTableSz; 	//is this set anywhere???
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */

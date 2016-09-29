@@ -27,7 +27,6 @@ struct file* get_file(int fd){
 //Terminates Pintos by calling shutdown_power_off() (declared in threads/init.h). This should be seldom used, because you lose some information about possible deadlock situations, etc.
 void halt (void) {
 	shutdown_power_off();
-
 }
 
 //Terminates the current user program, returning status to the kernel. If the process's parent waits for it (see below), this is the status that will be returned. Conventionally, a status of 0 indicates success and nonzero values indicate errors.
@@ -65,16 +64,14 @@ int wait (tid_t pid) {
 
 //Creates a new file called file initially initial_size bytes in size. Returns true if successful, false otherwise. Creating a new file does not open it: opening the new file is a separate operation which would require a open system call.
 bool create (const char *file, unsigned initial_size) {
-	if(strlen(file)>14){return false;}
+	if(strlen(file)>14){return false;} 
 	return filesys_create(file,initial_size);
-	//do we need to add to file table?? no right??
 }
 
 //Deletes the file called file. Returns true if successful, false otherwise. A file may be removed regardless of whether it is open or closed, and removing an open file does not close it. See Removing an Open File, for details.
 bool remove (const char *file) {
 	if(strlen(file)>14){return false;}
 	return 	filesys_remove(file);
-	//do we need to remove it from file table?? no right ??
 }
 
 /*Opens the file called file. Returns a nonnegative integer handle called a "file descriptor" (fd), or -1 if the file could not be opened.
@@ -86,25 +83,16 @@ When a single file is opened more than once, whether by a single process or diff
 */
 int open (const char *file) {
 	if(strlen(file)>14){return -1;}
-	struct file* filePt;
-	filePt=filesys_open(file);
+	struct file* filePt = filesys_open(file);
 	if(filePt!=NULL){
-		struct thread* thread;
-		thread=thread_current();
-		int i=2;
-		bool foundSpot=false;
-		while(i<thread->fileTableSz){
-			if(thread->fileTable[i]==NULL){
-				foundSpot=true;
+		struct thread* thread = thread_current();
+		int i;	//stderr also reserved
+		for(i = 3; i < thread->fileTableSz; i++){
+			if(thread->fileTable[i] == NULL){
 				thread->fileTable[i]=filePt;
-				if(i>=thread->nextfd){
-					thread->nextfd=i+1;
-				}
+				return i;
 			}
-			i++;
 		}
-		if(foundSpot){return i;}
-		return -1;
 	}
 	return -1;	
 }
@@ -112,9 +100,6 @@ int open (const char *file) {
 //Returns the size, in bytes, of the file open as fd.
 int filesize (int fd) {
 	struct thread* thread= thread_current();
-	if(thread->nextfd<=fd){
-		return -1;	
-	}
 	struct file* file=thread->fileTable[fd];
 	if(file==NULL){return -1;}
 	return file_length(file);
@@ -123,22 +108,23 @@ int filesize (int fd) {
 //Reads size bytes from the file open as fd into buffer. Returns the number of bytes actually read (0 at end of file), or -1 if the file could not be read (due to a condition other than end of file). Fd 0 reads from the keyboard using input_getc().
 int read (int fd, void *buffer, unsigned size) {
 	int bytes = 0;
-	if (fd == 1 || fd<0){
+	if (fd == 1 || fd < 0){
 		bytes = -1;
 	} else if (fd == 0){
-		int i=0;
-		while(size-i>0){
-		char byte=input_getc();
-		if(byte!=EOF){return i;}
-		//TODO put in buffer//
-		i++;
+		int i;
+		for(i = 0; i < size; i++) {
+			char byte = input_getc();
+			if(byte == EOF){
+				buffer[i] = NULL;
+				return i;
+			}
+			buffer[i] = byte;
 		}
-		return size;
+		buffer[size] = NULL; //in case ran out of room before EOF
+		bytes = size;
 	} else{
-		struct thread* thread= thread_current();
-		if(thread->nextfd<=fd){
-			return -1;
-		}	
+		//check if valid here
+		struct thread* thread= thread_current();	
 		struct file* file=thread->fileTable[fd];
 		if(file==NULL){return -1;}
 		bytes=(int)file_read(file, buffer,size);
@@ -153,7 +139,7 @@ Fd 1 writes to the console. Your code to write to the console should write all o
 */
 int write (int fd, const void *buffer, unsigned size) {
 	int bytes = 0;
-	if (fd == 0) {
+	if (fd <= 0) {
 		bytes = -1;
 	} else if (fd == 1) {
 		putbuf (buffer, size);
@@ -161,9 +147,6 @@ int write (int fd, const void *buffer, unsigned size) {
 	} else {
 		//check if valid here
 		struct thread* thread= thread_current();
-		if(thread->nextfd<=fd){
-			return -1;
-		}
 		struct file* file= thread->fileTable[fd];
 		if(file==NULL){return -1;}
 		bytes=file_write(file,buffer,size);
@@ -175,11 +158,8 @@ int write (int fd, const void *buffer, unsigned size) {
 A seek past the current end of a file is not an error. A later read obtains 0 bytes, indicating end of file. A later write extends the file, filling any unwritten gap with zeros. (However, in Pintos files have a fixed length until project 4 is complete, so writes past end of file will return an error.) These semantics are implemented in the file system and do not require any special effort in system call implementation.
 */
 void seek (int fd, unsigned position) {
-        struct thread* thread= thread_current();
-        if(thread->nextfd<=fd){
-                return NULL;    //what to return to indicate error???
-        }
-        struct file* file=thread->fileTable[fd];
+	struct thread* thread= thread_current();
+    struct file* file=thread->fileTable[fd];
 	if(file==NULL){return;}
 	file->pos = position;
 }
@@ -187,9 +167,6 @@ void seek (int fd, unsigned position) {
 //Returns the position of the next byte to be read or written in open file fd, expressed in bytes from the beginning of the file.
 unsigned tell (int fd) {
 	struct thread* thread= thread_current();
-	if(thread->nextfd<=fd){
-		return NULL;	//what to return to indicate error???
-	}
 	struct file* file=thread->fileTable[fd];
 	if(file==NULL){return NULL;}
 	return file->pos;	
@@ -197,13 +174,10 @@ unsigned tell (int fd) {
 
 //Closes file descriptor fd. Exiting or terminating a process implicitly closes all its open file descriptors, as if by calling this function for each one.
 void close (int fd) {
-	if(fd==0){/*special case??*/}
+	if(fd==0){/*special case??*/} 
 	if(fd==1){/*special case??*/}
 	struct thread* thread= thread_current();
-	if(thread->nextfd<=fd){
-		return;
-	}
-	struct file* file=thread->fileTable[fd];
+	struct file* file = thread->fileTable[fd];
 	if(file==NULL){return;}
 	thread->fileTable[fd]=NULL;
 	file_close(file);
@@ -289,8 +263,4 @@ syscall_handler (struct intr_frame *f) {
 		//default:
 		//error
 	}
-
-	//remove later
-	//printf ("system call!\n");
-	//thread_exit ();
 }
