@@ -3,7 +3,8 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
-
+#include "filesys/file.h"
+struct file;
 static void syscall_handler (struct intr_frame *);
 
 void
@@ -85,8 +86,8 @@ int open (const char *file) {
 		struct thread* thread;
 		thread=thread_current();
 		thread->fileTable[thread->nextfd]=filePt;
-		int fd=theard->nextfd;
-		thead->nextfd=(thread->nextfd+1);
+		int fd=thread->nextfd;
+		thread->nextfd=(thread->nextfd+1);
 		return fd;
 	}
 	return -1;	
@@ -94,23 +95,27 @@ int open (const char *file) {
 
 //Returns the size, in bytes, of the file open as fd.
 int filesize (int fd) {
-	file* file_ptr = get_file(fd);
-	return (int) file_ptr->inode->length;
+	struct file* file_ptr = get_file(fd);
+//	return (int) file_ptr->inode->length;
+	return 0;
 }
 
 //Reads size bytes from the file open as fd into buffer. Returns the number of bytes actually read (0 at end of file), or -1 if the file could not be read (due to a condition other than end of file). Fd 0 reads from the keyboard using input_getc().
 int read (int fd, void *buffer, unsigned size) {
 	int bytes = 0;
-	if (fd == 1){
+	if (fd == 1 || fd<0){
 		bytes = -1;
 	} else if (fd == 0){
 		//keep doing this until reach EOF or size bytes
 		input_getc();
 		return size;//why???
 	} else{
-		//check if valid here
-		file* file_read = get_file(fd);
-		int bytes = file_read(file, buffer, size);		
+		struct thread* thread= thread_current();
+		if(thread->nextfd<=fd){
+			return -1;
+		}	
+		struct file* file=thread->fileTable[fd];
+		bytes=(int)file_read(file, buffer,size);
 	}
 	return bytes;
 }
@@ -129,8 +134,8 @@ int write (int fd, const void *buffer, unsigned size) {
 		bytes = size;	//check if this is right
 	} else {
 		//check if valid here
-		file* file_write = get_file(fd);
-		int bytes = file_write(fd);
+		//struct file* file_write = get_file(fd);
+		//int bytes = file_write(fd);
 	}
 	return bytes;
 }
@@ -139,13 +144,13 @@ int write (int fd, const void *buffer, unsigned size) {
 A seek past the current end of a file is not an error. A later read obtains 0 bytes, indicating end of file. A later write extends the file, filling any unwritten gap with zeros. (However, in Pintos files have a fixed length until project 4 is complete, so writes past end of file will return an error.) These semantics are implemented in the file system and do not require any special effort in system call implementation.
 */
 void seek (int fd, unsigned position) {
-	file* file_ptr = get_file(fd);
+	struct file* file_ptr = get_file(fd);
 	file_ptr->pos = position;
 }
 
 //Returns the position of the next byte to be read or written in open file fd, expressed in bytes from the beginning of the file.
 unsigned tell (int fd) {
-	file* file_ptr = get_file(fd);
+	struct file* file_ptr = get_file(fd);
 	return file_ptr->pos;
 }
 
