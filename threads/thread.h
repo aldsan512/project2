@@ -95,6 +95,7 @@ struct thread
 	bool loadSuccess;
 	struct file* fileTable[30];
 	int nextfd;
+	int fileTableSz;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */

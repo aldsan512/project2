@@ -101,6 +101,7 @@ thread_init (void)
 	initial_thread->fileTable[0]=0;	
 	initial_thread->fileTable[1]=1;
 	initial_thread->nextfd=2;
+	initial_thread->fileTableSz=30;
   initial_thread->tid = allocate_tid ();
 }
 
