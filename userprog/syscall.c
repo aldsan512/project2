@@ -13,6 +13,18 @@
 
 static struct lock* lock;
 
+bool valid_fd(int fd, struct intr_frame* f){
+	struct thread* thread = thread_current();
+	if(fd < 0 || fd > thread->fileTableSz){
+		f->eax = -1;
+		return false;
+	} else if(thread->fileTable[fd] == NULL){
+		f->eax = -1;
+		return false;
+	}
+	return true;
+}
+
 bool valid_pointer(void* ptr, bool write, struct intr_frame* f){
 	struct thread* thread = thread_current();
 	if(ptr == NULL){
@@ -58,10 +70,8 @@ void halt (void) {
 
 //Terminates the current user program, returning status to the kernel. If the process's parent waits for it (see below), this is the status that will be returned. Conventionally, a status of 0 indicates success and nonzero values indicate errors.
 void exit (int status) {
-/*	if(status == 0){
-		process_exit();
-		return;
-	}*/
+	struct thread* t = thread_current();
+	//t->exit_status = status;
 	process_exit();
 }
 
@@ -150,6 +160,10 @@ int open (const char *file) {
 int filesize (int fd) {
 	lock_acquire(lock);
 	struct thread* thread= thread_current();
+	if(fd < 0 || fd > thread->fileTableSz){
+		lock_release(lock);
+		return -1;
+	}
 	struct file* file=thread->fileTable[fd];
 	int ret = file_length(file);
 	lock_release(lock);
@@ -177,10 +191,16 @@ int read (int fd, void *buffer, unsigned size) {
 		read_buffer[size] = NULL; //in case ran out of room before EOF
 		bytes = size;
 	} else{
-		//check if valid here
-		struct thread* thread= thread_current();	
+		struct thread* thread= thread_current();
+		if(fd < 0 || fd > thread->fileTableSz){
+			lock_release(lock);
+			return -1;
+		}	
 		struct file* file=thread->fileTable[fd];
-		if(file==NULL){return -1;}
+		if(file==NULL){
+			lock_release(lock);
+			return -1;
+		}
 		bytes=(int)file_read(file, buffer,size);
 	}
 	lock_release(lock);
@@ -198,13 +218,20 @@ int write (int fd, const void *buffer, unsigned size) {
 	if (fd <= 0) {
 		bytes = -1;
 	} else if (fd == 1) {
+		//putbut in chunks
 		putbuf (buffer, size);
-		bytes = size;	//check if this is right
+		bytes = size;	
 	} else {
-		//check if valid here
 		struct thread* thread= thread_current();
+		if(fd < 0 || fd > thread->fileTableSz){
+			lock_release(lock);
+			return -1;
+		}
 		struct file* file= thread->fileTable[fd];
-		if(file==NULL){return -1;}
+		if(file==NULL){
+			lock_release(lock);
+			return -1;
+		}
 		bytes=file_write(file,buffer,size);
 	}
 	lock_release(lock);
@@ -235,10 +262,6 @@ unsigned tell (int fd) {
 //Closes file descriptor fd. Exiting or terminating a process implicitly closes all its open file descriptors, as if by calling this function for each one.
 void close (int fd) {
 	lock_acquire(lock);
-	if(fd <= 1){
-		lock_release(lock);
-		return;
-	}
 	struct thread* thread= thread_current();
 	struct file* file = thread->fileTable[fd];
 	if(file==NULL){
@@ -246,6 +269,7 @@ void close (int fd) {
 		return;
 	}
 	thread->fileTable[fd]=NULL;
+
 	file_close(file);
 	lock_release(lock);
 }
@@ -257,11 +281,19 @@ syscall_handler (struct intr_frame *f) {
 	char *file, *command;
 	void *buffer;
 	tid_t pid;
+	
+	struct thread* thread = thread_current();
 
 	uint32_t* sp = f->esp;
 	bool failure = false;
-	if(!valid_pointer(sp, false, -1)){ return; }
-	if(!valid_pointer(f->eax, false, -1)){ return; }	//needed???
+	if(!valid_pointer(sp, false, -1)){
+		exit(-1);
+		return; 
+	}
+	if(!valid_pointer(f->eax, false, -1)){
+		exit(-1);
+		return; 
+	}	//needed???
 	uint32_t sys_call = *sp; 	
 	sp++;
 	switch (sys_call) {
@@ -274,28 +306,43 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_EXEC:                   /* Start another process. */
 			command = (char*) *sp;
-			if(!valid_pointer(command, false, f)){ return; }
+			if(!valid_pointer(command, false, f)){
+				exit(-1);
+				return;
+			}
+			//check valid command???
 			f->eax = (uint32_t) exec (command);
 			break;
 		case SYS_WAIT:                   /* Wait for a child process to die. */
 			pid = *sp;
+			//check valid pid???
 			f->eax = (uint32_t) wait (pid);
 			break;
 		case SYS_CREATE:                /* Create a file. */
 			file = (char*) *sp;
-			if(!valid_pointer(file, false, f)){ return; }
+			if(!valid_pointer(file, false, f)){ 
+				exit(-1);
+				return; 
+			}
 			sp++;
 			size = *sp;
+			//check valid size???
 			f->eax = (uint32_t) create(file, size);
 			break;
 		case SYS_REMOVE:             /* Delete a file. */
 			file = (char*) *sp;
-			if(!valid_pointer(file, false, f)){ return; }
+			if(!valid_pointer(file, false, f)){ 
+				exit(-1);
+				return; 
+			}
 			f->eax = (uint32_t) remove (file);
 			break;
 		case SYS_OPEN:               /* Open a file. */
 			file = (char*) *sp;
-			if(!valid_pointer(sp, false, f)){ return; }
+			if(!valid_pointer(sp, false, f)){ 
+				exit(-1);
+				return; 
+			}
 			open (file);
 			break;
 		case SYS_FILESIZE:          /* Obtain a file's size. */
@@ -304,36 +351,63 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_READ:            /* Read from a file. */
 			fd = *sp;
+			if(fd < 0 || fd > thread->fileTableSz){
+				f->eax = -1;
+				return;
+			}
 			sp++;
 			buffer = (char*) *sp;
-			if(!valid_pointer(buffer, false, f)){ return; }
+			if(!valid_pointer(buffer, false, f)){ 
+				exit(-1);
+				return; 
+			}
 			sp++;
 			size = *sp;
-			//check if returns -1 and terminate process if so
+			//check valid size???
 			f->eax = (uint32_t) read (fd, buffer, size);
 			break;
 		case SYS_WRITE:             /* Write to a file. */
 			fd = *sp;
+			if(fd < 0 || fd > thread->fileTableSz){
+				f->eax = -1;
+				return;
+			}
 			sp++;
 			buffer = (char*) *sp;
-			if(!valid_pointer(buffer, true, f)){ return; }
+			if(!valid_pointer(buffer, true, f)){ 
+				exit(-1);
+				return; 
+			}
 			sp++;
 			size = *sp;
-			//check if returns -1 and terminate process if so
+			//check valid size???
 			f->eax = (uint32_t) write (fd, buffer, size);
 			break;
 		case SYS_SEEK:              /* Change position in a file. */
 			fd = *sp;
+			if(fd < 0 || fd > thread->fileTableSz){
+				f->eax = -1;
+				return;
+			}	
 			sp++;
 			position = *sp;
+			//check valid position???
 			seek (fd, position);
 			break;
 		case SYS_TELL:               /* Report current position in a file. */
 			fd = *sp;
+			if(fd < 0 || fd > thread->fileTableSz){
+				f->eax = -1;
+				return;
+			}
 			f->eax = (uint32_t) tell (fd);
 			break;
 		case SYS_CLOSE:              /* Close a file. */
 			fd = *sp;
+			if(fd < 0 || fd > thread->fileTableSz){
+				f->eax = -1;
+				return;
+			}
 			close (fd);
 			break;
 		default:
