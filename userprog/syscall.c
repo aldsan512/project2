@@ -5,7 +5,9 @@
 #include "threads/thread.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
-struct file;
+
+#define EOF -1
+
 static void syscall_handler (struct intr_frame *);
 
 void
@@ -107,13 +109,13 @@ int open (const char *file) {
 int filesize (int fd) {
 	struct thread* thread= thread_current();
 	struct file* file=thread->fileTable[fd];
-	if(file==NULL){return -1;}
 	return file_length(file);
 }
 
 //Reads size bytes from the file open as fd into buffer. Returns the number of bytes actually read (0 at end of file), or -1 if the file could not be read (due to a condition other than end of file). Fd 0 reads from the keyboard using input_getc().
 int read (int fd, void *buffer, unsigned size) {
 	int bytes = 0;
+	char* read_buffer = (char*) buffer;
 	if (fd == 1 || fd < 0){
 		bytes = -1;
 	} else if (fd == 0){
@@ -121,12 +123,12 @@ int read (int fd, void *buffer, unsigned size) {
 		for(i = 0; i < size; i++) {
 			char byte = input_getc();
 			if(byte == EOF){
-				buffer[i] = NULL;
+				read_buffer[i] = NULL;
 				return i;
 			}
-			buffer[i] = byte;
+			read_buffer[i] = byte;
 		}
-		buffer[size] = NULL; //in case ran out of room before EOF
+		read_buffer[size] = NULL; //in case ran out of room before EOF
 		bytes = size;
 	} else{
 		//check if valid here
@@ -166,27 +168,24 @@ A seek past the current end of a file is not an error. A later read obtains 0 by
 void seek (int fd, unsigned position) {
 	struct thread* thread= thread_current();
     struct file* file=thread->fileTable[fd];
-	if(file==NULL){return;}
-	file->pos = position;
+	file_seek(file, (off_t) position);
 }
 
 //Returns the position of the next byte to be read or written in open file fd, expressed in bytes from the beginning of the file.
 unsigned tell (int fd) {
 	struct thread* thread= thread_current();
 	struct file* file=thread->fileTable[fd];
-	if(file==NULL){return NULL;}
-	return file->pos;	
+	return file_tell(file);	
 }
 
 //Closes file descriptor fd. Exiting or terminating a process implicitly closes all its open file descriptors, as if by calling this function for each one.
 void close (int fd) {
-	if(fd==0){/*special case??*/} 
-	if(fd==1){/*special case??*/}
+	if(fd <= 1){ return;}
 	struct thread* thread= thread_current();
 	struct file* file = thread->fileTable[fd];
 	if(file==NULL){return;}
 	thread->fileTable[fd]=NULL;
-	file_close(file);
+	file_close(file); //needed???
 }
 
 static void
