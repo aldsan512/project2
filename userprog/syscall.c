@@ -32,12 +32,13 @@ void halt (void) {
 
 //Terminates the current user program, returning status to the kernel. If the process's parent waits for it (see below), this is the status that will be returned. Conventionally, a status of 0 indicates success and nonzero values indicate errors.
 void exit (int status) {
-
+	//TODO
 }
 
 //Runs the executable whose name is given in cmd_line, passing any given arguments, and returns the new process's program id (pid). Must return pid -1, which otherwise should not be a valid pid, if the program cannot load or run for any reason. Thus, the parent process cannot return from the exec until it knows whether the child process successfully loaded its executable. You must use appropriate synchronization to ensure this.
 tid_t exec (const char *cmd_line) {
 
+	//TODO
 	return NULL;
 }
 
@@ -58,6 +59,7 @@ Implementing this system call requires considerably more work than any of the re
 */
 int wait (tid_t pid) {
 
+	//TODO
 	return NULL;
 }
 
@@ -110,7 +112,9 @@ int filesize (int fd) {
 	if(thread->nextfd<=fd){
 		return -1;	
 	}
-	//TODO get file sz
+	struct file* file=thread->fileTable[fd];
+	if(file==NULL){return -1;}
+	return file_length(file);
 }
 
 //Reads size bytes from the file open as fd into buffer. Returns the number of bytes actually read (0 at end of file), or -1 if the file could not be read (due to a condition other than end of file). Fd 0 reads from the keyboard using input_getc().
@@ -133,6 +137,7 @@ int read (int fd, void *buffer, unsigned size) {
 			return -1;
 		}	
 		struct file* file=thread->fileTable[fd];
+		if(file==NULL){return -1;}
 		bytes=(int)file_read(file, buffer,size);
 	}
 	return bytes;
@@ -157,6 +162,7 @@ int write (int fd, const void *buffer, unsigned size) {
 			return -1;
 		}
 		struct file* file= thread->fileTable[fd];
+		if(file==NULL){return -1;}
 		bytes=file_write(file,buffer,size);
 	}
 	return bytes;
@@ -166,23 +172,36 @@ int write (int fd, const void *buffer, unsigned size) {
 A seek past the current end of a file is not an error. A later read obtains 0 bytes, indicating end of file. A later write extends the file, filling any unwritten gap with zeros. (However, in Pintos files have a fixed length until project 4 is complete, so writes past end of file will return an error.) These semantics are implemented in the file system and do not require any special effort in system call implementation.
 */
 void seek (int fd, unsigned position) {
-	struct file* file_ptr = get_file(fd);
-	file_ptr->pos = position;
+        struct thread* thread= thread_current();
+        if(thread->nextfd<=fd){
+                return NULL;    //what to return to indicate error???
+        }
+        struct file* file=thread->fileTable[fd];
+	if(file==NULL){return;}
+	file->pos = position;
 }
 
 //Returns the position of the next byte to be read or written in open file fd, expressed in bytes from the beginning of the file.
 unsigned tell (int fd) {
-	struct file* file_ptr = get_file(fd);
-	return file_ptr->pos;
+	struct thread* thread= thread_current();
+	if(thread->nextfd<=fd){
+		return NULL;	//what to return to indicate error???
+	}
+	struct file* file=thread->fileTable[fd];
+	if(file==NULL){return NULL;}
+	return file->pos;	
 }
 
 //Closes file descriptor fd. Exiting or terminating a process implicitly closes all its open file descriptors, as if by calling this function for each one.
 void close (int fd) {
+	if(fd==0){/*special case??*/}
+	if(fd==1){/*special case??*/}
 	struct thread* thread= thread_current();
 	if(thread->nextfd<=fd){
 		return;
 	}
 	struct file* file=thread->fileTable[fd];
+	if(file==NULL){return;}
 	thread->fileTable[fd]=NULL;
 	file_close(file);
 }
