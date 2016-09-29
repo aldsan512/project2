@@ -13,7 +13,7 @@ syscall_init (void) {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
-bool check_page_fault (int fd, struct intr_frame **f) {
+/*bool check_page_fault (int fd, struct intr_frame **f) {
 	int error = 0;
 	//compute error
 	*f->error_code = error;
@@ -22,7 +22,7 @@ bool check_page_fault (int fd, struct intr_frame **f) {
 
 struct file* get_file(int fd){
 	
-}
+}*/
 
 //Terminates Pintos by calling shutdown_power_off() (declared in threads/init.h). This should be seldom used, because you lose some information about possible deadlock situations, etc.
 void halt (void) {
