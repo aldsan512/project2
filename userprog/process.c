@@ -58,7 +58,7 @@ tid_t process_execute (const char *file_name) {
 	comm->fileName=strtok_r((char*)file_name," ",&(comm->args));
         comm->fileLen=strlen(comm->fileName)+1;
 	comm->parentLock=(struct semaphore*)palloc_get_page(0);
-	sema_init(comm->parentLock,0);
+	sema_init(comm->parentLock,1);
 	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);
 	sema_down(comm->parentLock);
 	if (tid == TID_ERROR){
