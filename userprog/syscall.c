@@ -33,6 +33,10 @@ void halt (void) {
 
 //Terminates the current user program, returning status to the kernel. If the process's parent waits for it (see below), this is the status that will be returned. Conventionally, a status of 0 indicates success and nonzero values indicate errors.
 void exit (int status) {
+/*	if(status == 0){
+		process_exit();
+		return;
+	}*/
 	process_exit();
 }
 
