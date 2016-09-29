@@ -69,12 +69,14 @@ int wait (tid_t pid) {
 
 //Creates a new file called file initially initial_size bytes in size. Returns true if successful, false otherwise. Creating a new file does not open it: opening the new file is a separate operation which would require a open system call.
 bool create (const char *file, unsigned initial_size) {
+	if(file==NULL){return false;}	
 	if(strlen(file)>14){return false;} 
 	return filesys_create(file,initial_size);
 }
 
 //Deletes the file called file. Returns true if successful, false otherwise. A file may be removed regardless of whether it is open or closed, and removing an open file does not close it. See Removing an Open File, for details.
 bool remove (const char *file) {
+	if(file==NULL){return false;}
 	if(strlen(file)>14){return false;}
 	return 	filesys_remove(file);
 }
@@ -92,7 +94,7 @@ int open (const char *file) {
 	if(filePt!=NULL){
 		struct thread* thread = thread_current();
 		int i;	//stderr also reserved
-		for(i = 3; i < thread->fileTableSz; i++){
+		for(i = 2; i < thread->fileTableSz; i++){
 			if(thread->fileTable[i] == NULL){
 				thread->fileTable[i]=filePt;
 				return i;
@@ -104,8 +106,10 @@ int open (const char *file) {
 
 //Returns the size, in bytes, of the file open as fd.
 int filesize (int fd) {
+	if(fd<=1){return -1;}
 	struct thread* thread= thread_current();
 	struct file* file=thread->fileTable[fd];
+	if(file==NULL){return -1;}
 	return file_length(file);
 }
 
@@ -128,7 +132,6 @@ int read (int fd, void *buffer, unsigned size) {
 		read_buffer[size] = NULL; //in case ran out of room before EOF
 		bytes = size;
 	} else{
-		//check if valid here
 		struct thread* thread= thread_current();	
 		struct file* file=thread->fileTable[fd];
 		if(file==NULL){return -1;}
@@ -147,10 +150,10 @@ int write (int fd, const void *buffer, unsigned size) {
 	if (fd <= 0) {
 		bytes = -1;
 	} else if (fd == 1) {
+		//putbut in chunks
 		putbuf (buffer, size);
-		bytes = size;	//check if this is right
+		bytes = size;	
 	} else {
-		//check if valid here
 		struct thread* thread= thread_current();
 		struct file* file= thread->fileTable[fd];
 		if(file==NULL){return -1;}
@@ -164,15 +167,20 @@ A seek past the current end of a file is not an error. A later read obtains 0 by
 */
 void seek (int fd, unsigned position) {
 	struct thread* thread= thread_current();
-    struct file* file=thread->fileTable[fd];
-	file_seek(file, (off_t) position);
+	struct file* file=thread->fileTable[fd];
+	if(file!=NULL){
+		file_seek(file, (off_t) position);
+	}
 }
 
 //Returns the position of the next byte to be read or written in open file fd, expressed in bytes from the beginning of the file.
 unsigned tell (int fd) {
 	struct thread* thread= thread_current();
 	struct file* file=thread->fileTable[fd];
+	if(file!=NULL){
 	return file_tell(file);	
+	}
+	return 0;
 }
 
 //Closes file descriptor fd. Exiting or terminating a process implicitly closes all its open file descriptors, as if by calling this function for each one.
@@ -182,7 +190,7 @@ void close (int fd) {
 	struct file* file = thread->fileTable[fd];
 	if(file==NULL){return;}
 	thread->fileTable[fd]=NULL;
-	file_close(file); //needed???
+	file_close(file); 
 }
 
 static void
