@@ -65,14 +65,16 @@ int wait (tid_t pid) {
 
 //Creates a new file called file initially initial_size bytes in size. Returns true if successful, false otherwise. Creating a new file does not open it: opening the new file is a separate operation which would require a open system call.
 bool create (const char *file, unsigned initial_size) {
+	if(strlen(file)>14){return false;}
 	return filesys_create(file,initial_size);
 	//do we need to add to file table?? no right??
 }
 
 //Deletes the file called file. Returns true if successful, false otherwise. A file may be removed regardless of whether it is open or closed, and removing an open file does not close it. See Removing an Open File, for details.
 bool remove (const char *file) {
-	//call filesys remove
-	return NULL;
+	if(strlen(file)>14){return false;}
+	return 	filesys_remove(file);
+	//do we need to remove it from file table?? no right ??
 }
 
 /*Opens the file called file. Returns a nonnegative integer handle called a "file descriptor" (fd), or -1 if the file could not be opened.
@@ -83,6 +85,7 @@ Each process has an independent set of file descriptors. File descriptors are no
 When a single file is opened more than once, whether by a single process or different processes, each open returns a new file descriptor. Different file descriptors for a single file are closed independently in separate calls to close and they do not share a file position.
 */
 int open (const char *file) {
+	if(strlen(file)>14){return -1;}
 	struct file* filePt;
 	filePt=filesys_open(file);
 	if(filePt!=NULL){
