@@ -5,8 +5,30 @@
 #include "threads/thread.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
+#include "threads/vaddr.h"
+#include "threads/pte.h"
+#include "userprog/pagedir.h"
 
 #define EOF -1
+
+bool valid_pointer(void* ptr, bool write, struct intr_frame* f){
+	struct thread* thread = thread_current();
+	if(ptr == NULL){
+		f->eax = -1;
+		return false;
+	} else if(!is_user_vaddr(ptr)){
+		f->eax = -1;
+		return false;
+	} else if (!pagedir_is_present(thread->pagedir, ptr)){
+		f->eax = -1;
+		return false;
+	} else if (!pagedir_is_read_write(thread->pagedir, ptr) && write){
+		f->eax = -1;
+		return false;
+	} else {
+		return true;
+	}
+}
 
 static void syscall_handler (struct intr_frame *);
 
@@ -202,6 +224,9 @@ syscall_handler (struct intr_frame *f) {
 	tid_t pid;
 
 	uint32_t* sp = f->esp;
+	bool failure = false;
+	if(!valid_pointer(sp, false, -1)){ return; }
+	if(!valid_pointer(f->eax, false, -1)){ return; }	//needed???
 	uint32_t sys_call = *sp; 	
 	sp++;
 	switch (sys_call) {
@@ -214,6 +239,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_EXEC:                   /* Start another process. */
 			command = (char*) *sp;
+			if(!valid_pointer(command, false, f)){ return; }
 			f->eax = (uint32_t) exec (command);
 			break;
 		case SYS_WAIT:                   /* Wait for a child process to die. */
@@ -222,16 +248,19 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_CREATE:                /* Create a file. */
 			file = (char*) *sp;
+			if(!valid_pointer(file, false, f)){ return; }
 			sp++;
 			size = *sp;
 			f->eax = (uint32_t) create(file, size);
 			break;
 		case SYS_REMOVE:             /* Delete a file. */
 			file = (char*) *sp;
+			if(!valid_pointer(file, false, f)){ return; }
 			f->eax = (uint32_t) remove (file);
 			break;
 		case SYS_OPEN:               /* Open a file. */
 			file = (char*) *sp;
+			if(!valid_pointer(sp, false, f)){ return; }
 			open (file);
 			break;
 		case SYS_FILESIZE:          /* Obtain a file's size. */
@@ -242,6 +271,7 @@ syscall_handler (struct intr_frame *f) {
 			fd = *sp;
 			sp++;
 			buffer = (char*) *sp;
+			if(!valid_pointer(buffer, false, f)){ return; }
 			sp++;
 			size = *sp;
 			//check if returns -1 and terminate process if so
@@ -251,6 +281,7 @@ syscall_handler (struct intr_frame *f) {
 			fd = *sp;
 			sp++;
 			buffer = (char*) *sp;
+			if(!valid_pointer(buffer, true, f)){ return; }
 			sp++;
 			size = *sp;
 			//check if returns -1 and terminate process if so
@@ -270,7 +301,9 @@ syscall_handler (struct intr_frame *f) {
 			fd = *sp;
 			close (fd);
 			break;
-		//default:
-		//error
+		default:
+			f->eax = -1;
+			break;
 	}
+	
 }

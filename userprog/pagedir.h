@@ -4,6 +4,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+//Created by team
+bool pagedir_is_present(uint32_t *pd, const void *upage);
+bool pagedir_is_read_write(uint32_t *pd, const void *upage);
+
 uint32_t *pagedir_create (void);
 void pagedir_destroy (uint32_t *pd);
 bool pagedir_set_page (uint32_t *pd, void *upage, void *kpage, bool rw);
