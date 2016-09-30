@@ -211,6 +211,10 @@ int write (int fd, const void *buffer, unsigned size) {
 			lock_release(&l);
 			return -1;
 		}
+		if(file->deny_write) {
+			lock_release(&l);
+			return -1;
+		}
 		bytes=file_write(file,buffer,size);
 	}
 	lock_release(&l);
