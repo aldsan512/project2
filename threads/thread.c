@@ -97,6 +97,12 @@ thread_init (void)
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
+	initial_thread->fileTable[1]=1;
+ 	initial_thread->nextfd=2;
+ 	initial_thread->fileTableSz=30;
++	initial_thread->exit_status=0;
+	list_init(initial_thread->children);
+   initial_thread->tid = allocate_tid ();
   initial_thread->tid = allocate_tid ();
 }
 
