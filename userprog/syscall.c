@@ -12,7 +12,7 @@
 
 #define EOF -1
 
-struct lock l;
+static struct lock l;
 
 bool valid_pointer(void* ptr, bool write, struct intr_frame* f){
 	struct thread* thread = thread_current();
@@ -40,17 +40,6 @@ syscall_init (void) {
 	intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 	lock_init(&l);
 }
-
-/*bool check_page_fault (int fd, struct intr_frame **f) {
-	int error = 0;
-	//compute error
-	*f->error_code = error;
-	return error != 0;
-}
-
-struct file* get_file(int fd){
-	
-}*/
 
 //Terminates Pintos by calling shutdown_power_off() (declared in threads/init.h). This should be seldom used, because you lose some information about possible deadlock situations, etc.
 void halt (void) {
@@ -87,7 +76,7 @@ Implementing this system call requires considerably more work than any of the re
 */
 int wait (tid_t pid) {
 	if(pid<=0){
-		return 
+		return 0;
 	}
 	return NULL;
 }
