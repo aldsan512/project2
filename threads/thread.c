@@ -97,12 +97,6 @@ thread_init (void)
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
-  initial_thread->loadSuccess=true;
-	initial_thread->fileTable[0]=0;	
-	initial_thread->fileTable[1]=1;
-	initial_thread->nextfd=2;
-	initial_thread->fileTableSz=30;
-	initial_thread->exit_status=0;
   initial_thread->tid = allocate_tid ();
 }
 
@@ -110,6 +104,12 @@ thread_init (void)
    Also creates the idle thread. */
 void
 thread_start (void) 
+{
+  /* Create the idle thread. */
+  struct semaphore idle_started;
+  sema_init (&idle_started, 0);
+  thread_create ("idle", PRI_MIN, idle, &idle_started);
+
 {
   /* Create the idle thread. */
   struct semaphore idle_started;
@@ -581,28 +581,4 @@ allocate_tid (void)
   lock_acquire (&tid_lock);
   tid = next_tid++;
   lock_release (&tid_lock);
-
-  return tid;
-}
-
-/* Offset of `stack' member within `struct thread'.
-   Used by switch.S, which can't figure it out on its own. */
-uint32_t thread_stack_ofs = offsetof (struct thread, stack);
-
-
-struct thread* getThread (tid_t tid){
-  struct list_elem *e;
-
-  ASSERT (intr_get_level () == INTR_OFF);
-
-  for (e = list_begin (&all_list); e != list_end (&all_list);
-       e = list_next (e))
-    {
-      struct thread *t = list_entry (e, struct thread, allelem);
-      if(t->tid==tid){
-		return t;
-	} 
-    }
-	return NULL;
-}
 
