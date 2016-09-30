@@ -18,6 +18,7 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/synch.h"
+#include <list.h>
 //I wrote this//
 typedef struct{
 	char* fileName;
@@ -127,33 +128,24 @@ static void start_process (void *file_name_){
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int process_wait (tid_t child_tid UNUSED) {
-	
-	while(1){}
-/*	struct thread* t1 = thread_current();
-	lock_acquire(&t1->child_lock);
-	struct child c1;
-	c1.pid = child_tid;
-	struct hash_elem* e1 = hash_find(t1->children, &c1.elem);
-	if(e1 == NULL){
-		lock_release(&thread_current()->child_lock);
+	struct thread* parent = thread_current();
+	struct list_elem* e;
+	for (e = list_begin (&(parent->children)); e != list_end (&(parent->children));e = list_next (e)){
+		struct thread* child = list_entry (e, struct foo, elem);
+		if(child->tid==child_tid){
+			sema_down(child->execLock);	
+			return child->exit_status;
+		}
+	}
 		return -1;
-	}
-	struct child* found_child = hash_entry(e1, struct child, elem);
-	while(!found_child->done){
-		cond_wait(&t1->child_cond, &t1->child_lock);
-	}
-	int exit_status = found_child->exit_status;
-	lock_release(&t1->child_lock);
-	return exit_status;*/
 }
-
 /* Free the current process's resources. */
 void
 process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-
+	sema_up(cur->execLock);
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;

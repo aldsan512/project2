@@ -48,6 +48,7 @@ void halt (void) {
 
 //Terminates the current user program, returning status to the kernel. If the process's parent waits for it (see below), this is the status that will be returned. Conventionally, a status of 0 indicates success and nonzero values indicate errors.
 void exit (int status) {
+	//close fd, remove children from children list????
 	struct thread* t = thread_current();
 	t->exit_status=status;
 	process_exit();
@@ -56,7 +57,9 @@ void exit (int status) {
 //Runs the executable whose name is given in cmd_line, passing any given arguments, and returns the new process's program id (pid). Must return pid -1, which otherwise should not be a valid pid, if the program cannot load or run for any reason. Thus, the parent process cannot return from the exec until it knows whether the child process successfully loaded its executable. You must use appropriate synchronization to ensure this.
 tid_t exec (const char *cmd_line) {
 	tid_t tid = process_execute(cmd_line); 
-//	list_push_front(tid
+	struct thread* child=getThread(tid);
+	struct thread* parent=thread_current();
+	list_push_front(&(parent->children),&(child->elem));
 	return tid;
 }
 
@@ -76,9 +79,7 @@ You must ensure that Pintos does not terminate until the initial process exits. 
 Implementing this system call requires considerably more work than any of the rest.
 */
 int wait (tid_t pid) {
-	if(pid<=0){
-	}
-	return NULL;
+	return process_wait();
 }
 
 //Creates a new file called file initially initial_size bytes in size. Returns true if successful, false otherwise. Creating a new file does not open it: opening the new file is a separate operation which would require a open system call.

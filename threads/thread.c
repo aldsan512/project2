@@ -100,8 +100,9 @@ thread_init (void)
 	initial_thread->nextfd=2;
 	initial_thread->fileTableSz=30;
 	initial_thread->exit_status=0;
-	initial_thread->children=(struct list*)palloc_get_page(0);
-	list_init(initial_thread->children);
+	list_init(&(initial_thread->children));
+	initial_thread->execLock=palloc_get_page(0);
+	sema_init(initial_thread->execLock,1);
   initial_thread->tid = allocate_tid ();
 }
 
