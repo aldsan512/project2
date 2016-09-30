@@ -67,6 +67,7 @@ void exit (int status) {
 //Runs the executable whose name is given in cmd_line, passing any given arguments, and returns the new process's program id (pid). Must return pid -1, which otherwise should not be a valid pid, if the program cannot load or run for any reason. Thus, the parent process cannot return from the exec until it knows whether the child process successfully loaded its executable. You must use appropriate synchronization to ensure this.
 tid_t exec (const char *cmd_line) {
 	tid_t tid = process_execute(cmd_line); 
+//	list_push_front(tid
 	return tid;
 }
 
@@ -87,7 +88,6 @@ Implementing this system call requires considerably more work than any of the re
 */
 int wait (tid_t pid) {
 	if(pid<=0){
-		return 
 	}
 	return NULL;
 }
