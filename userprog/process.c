@@ -286,6 +286,8 @@ load (void* file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", myStruct->fileName);
       goto done; 
     }
+    file_deny_write(file); //find somewhere to allow write later???
+						   //maybe add file name to thread to allow exit() to allow write afterwards
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
