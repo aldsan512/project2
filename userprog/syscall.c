@@ -13,18 +13,6 @@
 
 static struct lock* lock;
 
-bool valid_fd(int fd, struct intr_frame* f){
-	struct thread* thread = thread_current();
-	if(fd < 0 || fd > thread->fileTableSz){
-		f->eax = -1;
-		return false;
-	} else if(thread->fileTable[fd] == NULL){
-		f->eax = -1;
-		return false;
-	}
-	return true;
-}
-
 bool valid_pointer(void* ptr, bool write, struct intr_frame* f){
 	struct thread* thread = thread_current();
 	if(ptr == NULL){
@@ -71,7 +59,7 @@ void halt (void) {
 //Terminates the current user program, returning status to the kernel. If the process's parent waits for it (see below), this is the status that will be returned. Conventionally, a status of 0 indicates success and nonzero values indicate errors.
 void exit (int status) {
 	struct thread* t = thread_current();
-	//t->exit_status = status;
+	t->exit_status=status;
 	process_exit();
 }
 
