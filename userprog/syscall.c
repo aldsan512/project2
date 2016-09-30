@@ -86,8 +86,9 @@ You must ensure that Pintos does not terminate until the initial process exits. 
 Implementing this system call requires considerably more work than any of the rest.
 */
 int wait (tid_t pid) {
-
-	//TODO
+	if(pid<=0){
+		return 
+	}
 	return NULL;
 }
 
