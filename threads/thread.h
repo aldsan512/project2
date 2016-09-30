@@ -96,6 +96,7 @@ struct thread
 	struct file* fileTable[30];	//i think this should be 128???
 	int nextfd;	//not needed, this isn't really a stack
 	int fileTableSz; 	//is this set anywhere???
+	int exit_status;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
