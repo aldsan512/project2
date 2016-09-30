@@ -51,7 +51,7 @@ tid_t process_execute (const char *file_name) {
   	strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
-  	printf("%s is the file_name I am in process_execute\n",file_name);
+//  	printf("%s is the file_name I am in process_execute\n",file_name);
         parentStruct* comm=(parentStruct*)palloc_get_page(0);
 	if(comm==NULL){
 		return TID_ERROR;//fix this
@@ -66,14 +66,16 @@ tid_t process_execute (const char *file_name) {
     		palloc_free_page (fn_copy); 
 		return TID_ERROR;
 	}
+	intr_set_level(INTR_OFF);
 	struct thread* childT=getThread(tid);
+	intr_set_level(INTR_ON);
 	if(childT==NULL){
 		return TID_ERROR;
 	}
 	if(childT->loadSuccess==false){
 		return TID_ERROR;
 	}
-	printf("im about to return");
+//	printf("im about to return");
   	return tid;
 	// must I deallocate semaphore//
 }
@@ -131,8 +133,10 @@ int process_wait (tid_t child_tid UNUSED) {
 	struct thread* parent = thread_current();
 	struct list_elem* e;
 	for (e = list_begin (&(parent->children)); e != list_end (&(parent->children));e = list_next (e)){
-		struct thread* child = list_entry (e, struct foo, elem);
+		struct thread* child = list_entry (e, struct thread, elem);
 		if(child->tid==child_tid){
+			child->execLock=palloc_get_page(0);
+			sema_init(child->execLock,1);
 			sema_down(child->execLock);	
 			return child->exit_status;
 		}
@@ -527,7 +531,7 @@ static bool setup_stack (void **esp, void* command) {
 		*argPt=(int)charPtr;
 		int k=0;
 		while(charPtr[k]!=0){
-			printf("%c\n",charPtr[k]);
+		//	printf("%c\n",charPtr[k]);
 			k++;
 		}
 	charPtr=charPtr+k+1;
@@ -543,7 +547,7 @@ static bool setup_stack (void **esp, void* command) {
 	argPt--;
 	*argPt=0;
 	*esp=argPt;	//is this right return addrress???
-	        hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
+	        //hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
 
      } 
 	else

@@ -9,7 +9,10 @@
 #include "threads/pte.h"
 #include "userprog/pagedir.h"
 #include "threads/synch.h"
-
+#include "userprog/process.h"
+#include "devices/input.h"
+#include "devices/shutdown.h"
+#include <string.h>
 #define EOF -1
 
 static struct lock l;
@@ -79,7 +82,7 @@ You must ensure that Pintos does not terminate until the initial process exits. 
 Implementing this system call requires considerably more work than any of the rest.
 */
 int wait (tid_t pid) {
-	return process_wait();
+	return process_wait(pid);
 }
 
 //Creates a new file called file initially initial_size bytes in size. Returns true if successful, false otherwise. Creating a new file does not open it: opening the new file is a separate operation which would require a open system call.
@@ -158,17 +161,17 @@ int read (int fd, void *buffer, unsigned size) {
 	if (fd == 1 || fd < 0){
 		bytes = -1;
 	} else if (fd == 0){
-		int i;
+		unsigned i;
 		for(i = 0; i < size; i++) {
 			char byte = input_getc();
 			if(byte == EOF){
-				read_buffer[i] = NULL;
+				read_buffer[i] =NULL;
 				lock_release(&l);
 				return i;
 			}
 			read_buffer[i] = byte;
 		}
-		read_buffer[size] = NULL; //in case ran out of room before EOF
+		read_buffer[size] =NULL; //in case ran out of room before EOF
 		bytes = size;
 	} else{
 		struct thread* thread= thread_current();
@@ -212,10 +215,10 @@ int write (int fd, const void *buffer, unsigned size) {
 			lock_release(&l);
 			return -1;
 		}
-		if(file->deny_write) {
-			lock_release(&l);
-			return -1;
-		}
+	//	if(file->deny_write) {
+	//		lock_release(&l);
+	//		return -1;
+	//	}
 		bytes=file_write(file,buffer,size);
 	}
 	lock_release(&l);
@@ -282,14 +285,17 @@ syscall_handler (struct intr_frame *f) {
 	sp++;
 	switch (sys_call) {
 		case SYS_HALT:                   /* Halt the operating system. */
+			printf("halt syscall\n");
 			halt ();
 			break;
 		case SYS_EXIT:                   /* Terminate this process. */
+		 printf("exit syscall\n");
 			status = *sp;
 			exit (status);
 			break;
 		case SYS_EXEC:                   /* Start another process. */
 			command = (char*) *sp;
+		 printf("exec syscall\n");
 			if(!valid_pointer(command, false, f)){
 				exit(-1);
 				return;
@@ -300,10 +306,13 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_WAIT:                   /* Wait for a child process to die. */
 			pid = *sp;
 			//check valid pid???
+		 printf("wait syscall\n");
 			f->eax = (uint32_t) wait (pid);
 			break;
 		case SYS_CREATE:                /* Create a file. */
 			file = (char*) *sp;
+			
+		 printf("create syscall\n");
 			if(!valid_pointer(file, false, f)){ 
 				exit(-1);
 				return; 
@@ -315,6 +324,7 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_REMOVE:             /* Delete a file. */
 			file = (char*) *sp;
 			if(!valid_pointer(file, false, f)){ 
+		 printf("remove syscall\n");
 				exit(-1);
 				return; 
 			}
@@ -322,6 +332,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_OPEN:               /* Open a file. */
 			file = (char*) *sp;
+		 printf("open syscall\n");
 			if(!valid_pointer(sp, false, f)){ 
 				exit(-1);
 				return; 
@@ -331,9 +342,11 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_FILESIZE:          /* Obtain a file's size. */
 			fd = *sp;
 			f->eax = (uint32_t) filesize (fd);
+		 printf("size syscall\n");
 			break;
 		case SYS_READ:            /* Read from a file. */
 			fd = *sp;
+		 printf("read syscall\n");
 			if(fd < 0 || fd > thread->fileTableSz){
 				f->eax = -1;
 				return;
@@ -350,6 +363,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_WRITE:             /* Write to a file. */
 			fd = *sp;
+		 printf("write syscall\n");
 			if(fd < 0 || fd > thread->fileTableSz){
 				f->eax = -1;
 				return;
@@ -366,6 +380,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_SEEK:              /* Change position in a file. */
 			fd = *sp;
+		 printf("seek syscall\n");
 			if(fd < 0 || fd > thread->fileTableSz){
 				f->eax = -1;
 				return;
@@ -376,6 +391,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_TELL:               /* Report current position in a file. */
 			fd = *sp;
+		 printf("tell syscall\n");
 			if(fd < 0 || fd > thread->fileTableSz){
 				f->eax = -1;
 				return;
@@ -384,6 +400,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_CLOSE:              /* Close a file. */
 			fd = *sp;
+		 printf("close syscall\n");
 			if(fd < 0 || fd > thread->fileTableSz){
 				f->eax = -1;
 				return;
