@@ -11,6 +11,8 @@
 
 #define EOF -1
 
+static struct lock* lock;
+
 bool valid_pointer(void* ptr, bool write, struct intr_frame* f){
 	struct thread* thread = thread_current();
 	if(ptr == NULL){
@@ -35,6 +37,7 @@ static void syscall_handler (struct intr_frame *);
 void
 syscall_init (void) {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+  lock_init(lock);
 }
 
 /*bool check_page_fault (int fd, struct intr_frame **f) {
@@ -90,16 +93,26 @@ int wait (tid_t pid) {
 
 //Creates a new file called file initially initial_size bytes in size. Returns true if successful, false otherwise. Creating a new file does not open it: opening the new file is a separate operation which would require a open system call.
 bool create (const char *file, unsigned initial_size) {
-	if(file==NULL){return false;}	
-	if(strlen(file)>14){return false;} 
-	return filesys_create(file,initial_size);
+	lock_acquire(lock);
+	if(strlen(file)>14){
+		lock_release(lock);
+		return false;
+	} 
+	bool ret = filesys_create(file,initial_size);
+	lock_release(lock);
+	return ret;
 }
 
 //Deletes the file called file. Returns true if successful, false otherwise. A file may be removed regardless of whether it is open or closed, and removing an open file does not close it. See Removing an Open File, for details.
 bool remove (const char *file) {
-	if(file==NULL){return false;}
-	if(strlen(file)>14){return false;}
-	return 	filesys_remove(file);
+	lock_acquire(lock);
+	if(strlen(file)>14){
+		lock_release(lock);
+		return false;
+	}
+	bool ret = filesys_remove(file);
+	lock_release(lock);
+	return ret;
 }
 
 /*Opens the file called file. Returns a nonnegative integer handle called a "file descriptor" (fd), or -1 if the file could not be opened.
@@ -110,32 +123,45 @@ Each process has an independent set of file descriptors. File descriptors are no
 When a single file is opened more than once, whether by a single process or different processes, each open returns a new file descriptor. Different file descriptors for a single file are closed independently in separate calls to close and they do not share a file position.
 */
 int open (const char *file) {
-	if(strlen(file)>14){return -1;}
+	lock_acquire(lock);
+	if(strlen(file)>14){
+		lock_release(lock);
+		return -1;
+	}
 	struct file* filePt = filesys_open(file);
 	if(filePt!=NULL){
 		struct thread* thread = thread_current();
-		int i;	//stderr also reserved
+		int i;
 		for(i = 2; i < thread->fileTableSz; i++){
 			if(thread->fileTable[i] == NULL){
 				thread->fileTable[i]=filePt;
+				lock_release(lock);
 				return i;
 			}
 		}
 	}
+	lock_release(lock);
 	return -1;	
+	
 }
 
 //Returns the size, in bytes, of the file open as fd.
 int filesize (int fd) {
-	if(fd<=1){return -1;}
+	lock_acquire(lock);
 	struct thread* thread= thread_current();
+	if(fd < 0 || fd > thread->fileTableSz){
+		lock_release(lock);
+		return -1;
+	}
 	struct file* file=thread->fileTable[fd];
-	if(file==NULL){return -1;}
-	return file_length(file);
+	int ret = file_length(file);
+	lock_release(lock);
+	return ret;
 }
 
 //Reads size bytes from the file open as fd into buffer. Returns the number of bytes actually read (0 at end of file), or -1 if the file could not be read (due to a condition other than end of file). Fd 0 reads from the keyboard using input_getc().
 int read (int fd, void *buffer, unsigned size) {
+	lock_acquire(lock);
 	int bytes = 0;
 	char* read_buffer = (char*) buffer;
 	if (fd == 1 || fd < 0){
@@ -146,6 +172,7 @@ int read (int fd, void *buffer, unsigned size) {
 			char byte = input_getc();
 			if(byte == EOF){
 				read_buffer[i] = NULL;
+				lock_release(lock);
 				return i;
 			}
 			read_buffer[i] = byte;
@@ -153,11 +180,19 @@ int read (int fd, void *buffer, unsigned size) {
 		read_buffer[size] = NULL; //in case ran out of room before EOF
 		bytes = size;
 	} else{
-		struct thread* thread= thread_current();	
+		struct thread* thread= thread_current();
+		if(fd < 0 || fd > thread->fileTableSz){
+			lock_release(lock);
+			return -1;
+		}	
 		struct file* file=thread->fileTable[fd];
-		if(file==NULL){return -1;}
+		if(file==NULL){
+			lock_release(lock);
+			return -1;
+		}
 		bytes=(int)file_read(file, buffer,size);
 	}
+	lock_release(lock);
 	return bytes;
 }
 
@@ -167,6 +202,7 @@ Writing past end-of-file would normally extend the file, but file growth is not 
 Fd 1 writes to the console. Your code to write to the console should write all of buffer in one call to putbuf(), at least as long as size is not bigger than a few hundred bytes. (It is reasonable to break up larger buffers.) Otherwise, lines of text output by different processes may end up interleaved on the console, confusing both human readers and our grading scripts.
 */
 int write (int fd, const void *buffer, unsigned size) {
+	lock_acquire(lock);
 	int bytes = 0;
 	if (fd <= 0) {
 		bytes = -1;
@@ -176,10 +212,18 @@ int write (int fd, const void *buffer, unsigned size) {
 		bytes = size;	
 	} else {
 		struct thread* thread= thread_current();
+		if(fd < 0 || fd > thread->fileTableSz){
+			lock_release(lock);
+			return -1;
+		}
 		struct file* file= thread->fileTable[fd];
-		if(file==NULL){return -1;}
+		if(file==NULL){
+			lock_release(lock);
+			return -1;
+		}
 		bytes=file_write(file,buffer,size);
 	}
+	lock_release(lock);
 	return bytes;
 }
 
@@ -187,31 +231,36 @@ int write (int fd, const void *buffer, unsigned size) {
 A seek past the current end of a file is not an error. A later read obtains 0 bytes, indicating end of file. A later write extends the file, filling any unwritten gap with zeros. (However, in Pintos files have a fixed length until project 4 is complete, so writes past end of file will return an error.) These semantics are implemented in the file system and do not require any special effort in system call implementation.
 */
 void seek (int fd, unsigned position) {
+	lock_acquire(lock);
 	struct thread* thread= thread_current();
-	struct file* file=thread->fileTable[fd];
-	if(file!=NULL){
-		file_seek(file, (off_t) position);
-	}
+    struct file* file=thread->fileTable[fd];
+	file_seek(file, (off_t) position);
+	lock_release(lock);
 }
 
 //Returns the position of the next byte to be read or written in open file fd, expressed in bytes from the beginning of the file.
 unsigned tell (int fd) {
+	lock_acquire(lock);
 	struct thread* thread= thread_current();
 	struct file* file=thread->fileTable[fd];
-	if(file!=NULL){
-	return file_tell(file);	
-	}
-	return 0;
+	unsigned ret = file_tell(file);	
+	lock_release(lock);
+	return ret;
 }
 
 //Closes file descriptor fd. Exiting or terminating a process implicitly closes all its open file descriptors, as if by calling this function for each one.
 void close (int fd) {
-	if(fd <= 1){ return;}
+	lock_acquire(lock);
 	struct thread* thread= thread_current();
 	struct file* file = thread->fileTable[fd];
-	if(file==NULL){return;}
+	if(file==NULL){
+		lock_release(lock);
+		return;
+	}
 	thread->fileTable[fd]=NULL;
-	file_close(file); 
+
+	file_close(file);
+	lock_release(lock);
 }
 
 static void
@@ -221,11 +270,19 @@ syscall_handler (struct intr_frame *f) {
 	char *file, *command;
 	void *buffer;
 	tid_t pid;
+	
+	struct thread* thread = thread_current();
 
 	uint32_t* sp = f->esp;
 	bool failure = false;
-	if(!valid_pointer(sp, false, -1)){ return; }
-	if(!valid_pointer(f->eax, false, -1)){ return; }	//needed???
+	if(!valid_pointer(sp, false, -1)){
+		exit(-1);
+		return; 
+	}
+	if(!valid_pointer(f->eax, false, -1)){
+		exit(-1);
+		return; 
+	}	//needed???
 	uint32_t sys_call = *sp; 	
 	sp++;
 	switch (sys_call) {
@@ -238,28 +295,43 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_EXEC:                   /* Start another process. */
 			command = (char*) *sp;
-			if(!valid_pointer(command, false, f)){ return; }
+			if(!valid_pointer(command, false, f)){
+				exit(-1);
+				return;
+			}
+			//check valid command???
 			f->eax = (uint32_t) exec (command);
 			break;
 		case SYS_WAIT:                   /* Wait for a child process to die. */
 			pid = *sp;
+			//check valid pid???
 			f->eax = (uint32_t) wait (pid);
 			break;
 		case SYS_CREATE:                /* Create a file. */
 			file = (char*) *sp;
-			if(!valid_pointer(file, false, f)){ return; }
+			if(!valid_pointer(file, false, f)){ 
+				exit(-1);
+				return; 
+			}
 			sp++;
 			size = *sp;
+			//check valid size???
 			f->eax = (uint32_t) create(file, size);
 			break;
 		case SYS_REMOVE:             /* Delete a file. */
 			file = (char*) *sp;
-			if(!valid_pointer(file, false, f)){ return; }
+			if(!valid_pointer(file, false, f)){ 
+				exit(-1);
+				return; 
+			}
 			f->eax = (uint32_t) remove (file);
 			break;
 		case SYS_OPEN:               /* Open a file. */
 			file = (char*) *sp;
-			if(!valid_pointer(sp, false, f)){ return; }
+			if(!valid_pointer(sp, false, f)){ 
+				exit(-1);
+				return; 
+			}
 			open (file);
 			break;
 		case SYS_FILESIZE:          /* Obtain a file's size. */
@@ -268,36 +340,63 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_READ:            /* Read from a file. */
 			fd = *sp;
+			if(fd < 0 || fd > thread->fileTableSz){
+				f->eax = -1;
+				return;
+			}
 			sp++;
 			buffer = (char*) *sp;
-			if(!valid_pointer(buffer, false, f)){ return; }
+			if(!valid_pointer(buffer, false, f)){ 
+				exit(-1);
+				return; 
+			}
 			sp++;
 			size = *sp;
-			//check if returns -1 and terminate process if so
+			//check valid size???
 			f->eax = (uint32_t) read (fd, buffer, size);
 			break;
 		case SYS_WRITE:             /* Write to a file. */
 			fd = *sp;
+			if(fd < 0 || fd > thread->fileTableSz){
+				f->eax = -1;
+				return;
+			}
 			sp++;
 			buffer = (char*) *sp;
-			if(!valid_pointer(buffer, true, f)){ return; }
+			if(!valid_pointer(buffer, true, f)){ 
+				exit(-1);
+				return; 
+			}
 			sp++;
 			size = *sp;
-			//check if returns -1 and terminate process if so
+			//check valid size???
 			f->eax = (uint32_t) write (fd, buffer, size);
 			break;
 		case SYS_SEEK:              /* Change position in a file. */
 			fd = *sp;
+			if(fd < 0 || fd > thread->fileTableSz){
+				f->eax = -1;
+				return;
+			}	
 			sp++;
 			position = *sp;
+			//check valid position???
 			seek (fd, position);
 			break;
 		case SYS_TELL:               /* Report current position in a file. */
 			fd = *sp;
+			if(fd < 0 || fd > thread->fileTableSz){
+				f->eax = -1;
+				return;
+			}
 			f->eax = (uint32_t) tell (fd);
 			break;
 		case SYS_CLOSE:              /* Close a file. */
 			fd = *sp;
+			if(fd < 0 || fd > thread->fileTableSz){
+				f->eax = -1;
+				return;
+			}
 			close (fd);
 			break;
 		default:
