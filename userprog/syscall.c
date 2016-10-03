@@ -251,6 +251,7 @@ unsigned tell (int fd) {
 
 //Closes file descriptor fd. Exiting or terminating a process implicitly closes all its open file descriptors, as if by calling this function for each one.
 void close (int fd) {
+	if(fd<=1){return;}
 	lock_acquire(&l);
 	struct thread* thread= thread_current();
 	struct file* file = thread->fileTable[fd];

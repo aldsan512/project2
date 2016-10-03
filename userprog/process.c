@@ -294,7 +294,8 @@ load (void* file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", myStruct->fileName);
       goto done; 
     }
-    //file_deny_write(file); //find somewhere to allow write later???
+//	t->myFile=file;
+    //file_deny_write(t->myFile); //find somewhere to allow write later???
 						   //maybe add file name to thread to allow exit() to allow write afterwards
 
   /* Read and verify executable header. */
@@ -383,7 +384,6 @@ load (void* file_name, void (**eip) (void), void **esp)
   file_close (file);
   return success;
 }
-
 /* load() helpers. */
 
 static bool install_page (void *upage, void *kpage, bool writable);
