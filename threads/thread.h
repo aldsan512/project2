@@ -100,7 +100,8 @@ struct thread
 	struct list children;
 	struct list_elem child;
 	bool isLocked;
-//	bool isChildLocked;
+	struct semaphore* wait_lock;
+	bool isChildLocked;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */

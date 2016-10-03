@@ -75,6 +75,8 @@ tid_t process_execute (const char *file_name) {
 	if(childT->loadSuccess==false){
 		return TID_ERROR;
 	}
+	//sema_init(childT->wait_lock, 0);
+	//sema_down(childT->wait_lock);
 	struct thread* parent = thread_current();
 	list_push_front(&(parent->children), &(childT->child)); //fix this
 //	printf("im about to return");
@@ -138,11 +140,13 @@ int process_wait (tid_t child_tid UNUSED) {
 		struct thread* child_t = list_entry (e, struct thread, child);
 		if(child_t->tid==child_tid){
 			while(child_t->isLocked==true){}
-			return child_t->exit_status;
+			//sema_down(child_t->wait_lock);
+			int status = child_t->exit_status;
+			return status;
 		}
 	}
 		return -1;
-	while(1){}
+	//while(1){}
 }
 /* Free the current process's resources. */
 void
@@ -151,6 +155,7 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
   	cur->isLocked=false;
+  	//sema_up(cur->wait_lock);
      /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;

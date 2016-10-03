@@ -470,7 +470,8 @@ init_thread (struct thread *t, const char *name, int priority)
 	t->exit_status=0;
 	list_init(&(t->children));
 	t->isLocked=true; 
-//	t->isChildLocked=true; 
+//	t->wait_lock = (struct semaphore*) palloc_get_page(0);
+	t->isChildLocked=true; 
 t->magic = THREAD_MAGIC;
 
 
