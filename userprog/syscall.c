@@ -1,4 +1,3 @@
-#include "userprog/syscall.h"
 #include <stdio.h>
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
@@ -17,18 +16,15 @@
 
 static struct lock l;
 
-bool valid_pointer(void* ptr, bool write, struct intr_frame* f){
-	struct thread* thread = thread_current();
+bool valid_pointer(void* ptr, struct intr_frame* f){
+	struct thread* t = thread_current();
 	if(ptr == NULL){
 		f->eax = -1;
 		return false;
 	} else if(!is_user_vaddr(ptr)){
 		f->eax = -1;
 		return false;
-	} else if (!pagedir_is_present(thread->pagedir, ptr)){
-		f->eax = -1;
-		return false;
-	} else if (!pagedir_is_read_write(thread->pagedir, ptr) && write){
+	} else if (pagedir_get_page(t->pagedir, ptr) == NULL){
 		f->eax = -1;
 		return false;
 	} else {
@@ -276,7 +272,7 @@ syscall_handler (struct intr_frame *f) {
 
 	uint32_t* sp = f->esp;
 	bool failure = false;
-	if(!valid_pointer(sp, false, f)){
+	if(!valid_pointer(sp, f)){
 		exit(-1);
 		return; 
 	}
@@ -294,12 +290,17 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_EXIT:                   /* Terminate this process. */
 		// printf("exit syscall\n");
 			status = *sp;
-			exit (status);
+			if(status < 0){
+				f->eax = -1;
+				exit(-1);
+			} else {
+				exit (status);
+			}
 			break;
 		case SYS_EXEC:                   /* Start another process. */
 			command = (char*) *sp;
 		// printf("exec syscall\n");
-			if(!valid_pointer(command, false, f)){
+			if(!valid_pointer(command, f)){
 				exit(-1);
 				return;
 			}
@@ -315,7 +316,7 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_CREATE:                /* Create a file. */
 			file = (char*) *sp;
 			
-			if(!valid_pointer(file, false, f)){ 
+			if(!valid_pointer(file, f)){ 
 				exit(-1);
 				return; 
 			}
@@ -325,7 +326,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_REMOVE:             /* Delete a file. */
 			file = (char*) *sp;
-			if(!valid_pointer(file, false, f)){ 
+			if(!valid_pointer(file, f)){ 
 				exit(-1);
 				return; 
 			}
@@ -333,7 +334,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_OPEN:               /* Open a file. */
 			file = (char*) *sp;
-			if(!valid_pointer(sp, false, f)){ 
+			if(!valid_pointer(sp, f)){ 
 				exit(-1);
 				return; 
 			}
@@ -351,7 +352,7 @@ syscall_handler (struct intr_frame *f) {
 			}
 			sp++;
 			buffer = (char*) *sp;
-			if(!valid_pointer(buffer, false, f)){ 
+			if(!valid_pointer(buffer, f)){ 
 				exit(-1);
 				return; 
 			}
@@ -368,7 +369,7 @@ syscall_handler (struct intr_frame *f) {
 			}
 			sp++;
 			buffer = (char*) *sp;
-			if(!valid_pointer(buffer, true, f)){ 
+			if(!valid_pointer(buffer, f)){ 
 				exit(-1);
 				return; 
 			}

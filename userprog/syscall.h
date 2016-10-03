@@ -16,4 +16,5 @@ int write (int fd, const void *buffer, unsigned size);
 void seek (int fd, unsigned position);
 unsigned tell (int fd);
 void close (int fd);
+bool valid_pointer(void* ptr, struct intr_frame* f);
 #endif /* userprog/syscall.h */
