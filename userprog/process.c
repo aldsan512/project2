@@ -75,6 +75,8 @@ tid_t process_execute (const char *file_name) {
 	if(childT->loadSuccess==false){
 		return TID_ERROR;
 	}
+	struct thread* parent = thread_current();
+	list_push_front(&(parent->children), &(childT->child)); //fix this
 //	printf("im about to return");
   	return tid;
 	// must I deallocate semaphore//
@@ -133,12 +135,12 @@ int process_wait (tid_t child_tid UNUSED) {
 	struct thread* parent = thread_current();
 	struct list_elem* e;
 	for (e = list_begin (&(parent->children)); e != list_end (&(parent->children));e = list_next (e)){
-		struct thread* child = list_entry (e, struct thread, elem);
-		if(child->tid==child_tid){
-			child->execLock=palloc_get_page(0);
-			sema_init(child->execLock,1);
-			sema_down(child->execLock);	
-			return child->exit_status;
+		struct thread* child_t = list_entry (e, struct thread, child);
+		if(child_t->tid==child_tid){
+			child_t->execLock=palloc_get_page(0);
+			sema_init(child_t->execLock,1);
+			sema_down(child_t->execLock);	
+			return child_t->exit_status;
 		}
 	}
 		return -1;
@@ -282,7 +284,7 @@ load (void* file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", myStruct->fileName);
       goto done; 
     }
-    file_deny_write(file); //find somewhere to allow write later???
+    //file_deny_write(file); //find somewhere to allow write later???
 						   //maybe add file name to thread to allow exit() to allow write afterwards
 
   /* Read and verify executable header. */

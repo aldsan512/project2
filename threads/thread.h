@@ -98,6 +98,7 @@ struct thread
 	int fileTableSz; 	//is this set anywhere???
 	int exit_status;
 	struct list children;
+	struct list_elem child;
 	struct semaphore* execLock;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */

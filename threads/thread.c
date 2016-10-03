@@ -94,13 +94,13 @@ thread_init (void)
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
-  initial_thread->loadSuccess=true;
+ /* initial_thread->loadSuccess=true;
 	initial_thread->fileTable[0]=0;	
 	initial_thread->fileTable[1]=1;
 	initial_thread->nextfd=2;
 	initial_thread->fileTableSz=30;
 	initial_thread->exit_status=0;
-	list_init(&(initial_thread->children));
+	list_init(&(initial_thread->children));*/
 //	initial_thread->execLock=palloc_get_page(0);
 //	sema_init(initial_thread->execLock,1);
   initial_thread->tid = allocate_tid ();
@@ -461,7 +461,17 @@ init_thread (struct thread *t, const char *name, int priority)
   strlcpy (t->name, name, sizeof t->name);
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
+  
+  t->loadSuccess=true;
+	t->fileTable[0]=0;	
+	t->fileTable[1]=1;
+	t->nextfd=2;
+	t->fileTableSz=30;
+	t->exit_status=0;
+	list_init(&(t->children));
+  
   t->magic = THREAD_MAGIC;
+
 
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);

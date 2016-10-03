@@ -60,9 +60,9 @@ void exit (int status) {
 //Runs the executable whose name is given in cmd_line, passing any given arguments, and returns the new process's program id (pid). Must return pid -1, which otherwise should not be a valid pid, if the program cannot load or run for any reason. Thus, the parent process cannot return from the exec until it knows whether the child process successfully loaded its executable. You must use appropriate synchronization to ensure this.
 tid_t exec (const char *cmd_line) {
 	tid_t tid = process_execute(cmd_line); 
-	struct thread* child=getThread(tid);
-	struct thread* parent=thread_current();
-	list_push_front(&(parent->children),&(child->elem));
+	//struct thread* child=getThread(tid);
+	//struct thread* parent=thread_current();
+	//list_push_front(&(parent->children),&(child->elem));
 	return tid;
 }
 
@@ -196,7 +196,7 @@ Writing past end-of-file would normally extend the file, but file growth is not 
 Fd 1 writes to the console. Your code to write to the console should write all of buffer in one call to putbuf(), at least as long as size is not bigger than a few hundred bytes. (It is reasonable to break up larger buffers.) Otherwise, lines of text output by different processes may end up interleaved on the console, confusing both human readers and our grading scripts.
 */
 int write (int fd, const void *buffer, unsigned size) {
-	lock_acquire(&l);
+	//lock_acquire(&l);
 	int bytes = 0;
 	if (fd <= 0) {
 		bytes = -1;
@@ -207,12 +207,12 @@ int write (int fd, const void *buffer, unsigned size) {
 	} else {
 		struct thread* thread= thread_current();
 		if(fd < 0 || fd > thread->fileTableSz){
-			lock_release(&l);
+			//lock_release(&l);
 			return -1;
 		}
 		struct file* file= thread->fileTable[fd];
 		if(file==NULL){
-			lock_release(&l);
+			//lock_release(&l);
 			return -1;
 		}
 	//	if(file->deny_write) {
@@ -221,7 +221,7 @@ int write (int fd, const void *buffer, unsigned size) {
 	//	}
 		bytes=file_write(file,buffer,size);
 	}
-	lock_release(&l);
+	//lock_release(&l);
 	return bytes;
 }
 
@@ -273,11 +273,11 @@ syscall_handler (struct intr_frame *f) {
 
 	uint32_t* sp = f->esp;
 	bool failure = false;
-	if(!valid_pointer(sp, false, -1)){
+	if(!valid_pointer(sp, false, f)){
 		exit(-1);
 		return; 
 	}
-	if(!valid_pointer(f->eax, false, -1)){
+	if(!valid_pointer(f->eax, false, f)){
 		exit(-1);
 		return; 
 	}	//needed???
@@ -363,7 +363,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_WRITE:             /* Write to a file. */
 			fd = *sp;
-		 printf("write syscall\n");
+		 //printf("write syscall\n");
 			if(fd < 0 || fd > thread->fileTableSz){
 				f->eax = -1;
 				return;
