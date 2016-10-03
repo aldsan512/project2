@@ -99,7 +99,8 @@ struct thread
 	int exit_status;
 	struct list children;
 	struct list_elem child;
-	struct semaphore* execLock;
+	bool isLocked;
+//	bool isChildLocked;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */

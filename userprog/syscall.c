@@ -277,10 +277,10 @@ syscall_handler (struct intr_frame *f) {
 		exit(-1);
 		return; 
 	}
-	if(!valid_pointer(f->eax, false, f)){
+/*	if(!valid_pointer(f->eax, false, f)){
 		exit(-1);
 		return; 
-	}	//needed???
+	}*/	//needed???
 	uint32_t sys_call = *sp; 	
 	sp++;
 	switch (sys_call) {

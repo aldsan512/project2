@@ -137,13 +137,12 @@ int process_wait (tid_t child_tid UNUSED) {
 	for (e = list_begin (&(parent->children)); e != list_end (&(parent->children));e = list_next (e)){
 		struct thread* child_t = list_entry (e, struct thread, child);
 		if(child_t->tid==child_tid){
-			child_t->execLock=palloc_get_page(0);
-			sema_init(child_t->execLock,1);
-			sema_down(child_t->execLock);	
+			while(child_t->isLocked==true){}
 			return child_t->exit_status;
 		}
 	}
 		return -1;
+	while(1){}
 }
 /* Free the current process's resources. */
 void
@@ -151,8 +150,8 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-	sema_up(cur->execLock);
-  /* Destroy the current process's page directory and switch back
+  	cur->isLocked=false;
+     /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
   if (pd != NULL) 

@@ -469,8 +469,9 @@ init_thread (struct thread *t, const char *name, int priority)
 	t->fileTableSz=30;
 	t->exit_status=0;
 	list_init(&(t->children));
-  
-  t->magic = THREAD_MAGIC;
+	t->isLocked=true; 
+//	t->isChildLocked=true; 
+t->magic = THREAD_MAGIC;
 
 
   old_level = intr_disable ();
