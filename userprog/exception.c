@@ -4,6 +4,7 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "userprog/syscall.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -108,6 +109,7 @@ kill (struct intr_frame *f)
     }
 }
 
+
 /* Page fault handler.  This is a skeleton that must be filled in
    to implement virtual memory.  Some solutions to project 2 may
    also require modifying this code.
@@ -136,26 +138,30 @@ page_fault (struct intr_frame *f)
      (#PF)". */
   asm ("movl %%cr2, %0" : "=r" (fault_addr));
 
+
   /* Turn interrupts back on (they were only off so that we could
      be assured of reading CR2 before it changed). */
   intr_enable ();
+  if(!valid_pointer(fault_addr, f)){
+	  exit(-1);
+  }
+	  /* Count page faults. */
+	  page_fault_cnt++;
 
-  /* Count page faults. */
-  page_fault_cnt++;
+	  /* Determine cause. */
+	  not_present = (f->error_code & PF_P) == 0;
+	  write = (f->error_code & PF_W) != 0;
+	  user = (f->error_code & PF_U) != 0;
 
-  /* Determine cause. */
-  not_present = (f->error_code & PF_P) == 0;
-  write = (f->error_code & PF_W) != 0;
-  user = (f->error_code & PF_U) != 0;
-
-  /* To implement virtual memory, delete the rest of the function
-     body, and replace it with code that brings in the page to
-     which fault_addr refers. */
-  printf ("Page fault at %p: %s error %s page in %s context.\n",
-          fault_addr,
-          not_present ? "not present" : "rights violation",
-          write ? "writing" : "reading",
-          user ? "user" : "kernel");
-  kill (f);
+	  /* To implement virtual memory, delete the rest of the function
+		 body, and replace it with code that brings in the page to
+		 which fault_addr refers. */
+	  printf ("Page fault at %p: %s error %s page in %s context.\n",
+			  fault_addr,
+			  not_present ? "not present" : "rights violation",
+			  write ? "writing" : "reading",
+			  user ? "user" : "kernel");
+	  kill (f);
+	
 }
 
