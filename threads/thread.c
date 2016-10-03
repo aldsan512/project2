@@ -292,8 +292,11 @@ thread_exit (void)
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
+printf("about to do list_remove");
   list_remove (&thread_current()->allelem);
+printf("done wiht list_remove");
   thread_current ()->status = THREAD_DYING;
+printf("about to call schedule");
   schedule ();
   NOT_REACHED ();
 }
@@ -471,7 +474,8 @@ init_thread (struct thread *t, const char *name, int priority)
 	list_init(&(t->children));
 	t->isLocked=true; 
 //	t->wait_lock = (struct semaphore*) palloc_get_page(0);
-	t->isChildLocked=true; 
+	sema_init(&t->dead_lock,0);
+	sema_init(&t->wait_lock,0);
 t->magic = THREAD_MAGIC;
 
 

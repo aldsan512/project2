@@ -59,7 +59,7 @@ tid_t process_execute (const char *file_name) {
 	comm->fileName=strtok_r((char*)file_name," ",&(comm->args));
         comm->fileLen=strlen(comm->fileName)+1;
 	comm->parentLock=(struct semaphore*)palloc_get_page(0);
-	sema_init(comm->parentLock,1);
+	sema_init(comm->parentLock,0);
 	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);
 	sema_down(comm->parentLock);
 	if (tid == TID_ERROR){
@@ -75,7 +75,7 @@ tid_t process_execute (const char *file_name) {
 	if(childT->loadSuccess==false){
 		return TID_ERROR;
 	}
-	//sema_init(childT->wait_lock, 0);
+	//sema_init(&childT->wait_lock, 0);
 	//sema_down(childT->wait_lock);
 	struct thread* parent = thread_current();
 	list_push_front(&(parent->children), &(childT->child)); //fix this
@@ -139,9 +139,10 @@ int process_wait (tid_t child_tid UNUSED) {
 	for (e = list_begin (&(parent->children)); e != list_end (&(parent->children));e = list_next (e)){
 		struct thread* child_t = list_entry (e, struct thread, child);
 		if(child_t->tid==child_tid){
-			while(child_t->isLocked==true){}
-			//sema_down(child_t->wait_lock);
+		//	while(child_t->isLocked==true){}
+			sema_down(&child_t->wait_lock);
 			int status = child_t->exit_status;
+			sema_up(&child_t->dead_lock);
 			return status;
 		}
 	}
@@ -172,6 +173,11 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+	//printf("%s: exit(%d)",fileName,exitStatus);
+   sema_up(&cur->wait_lock);
+	sema_down(&cur->dead_lock);
+	
+//	thread_exit();
 }
 
 /* Sets up the CPU for running user code in the current

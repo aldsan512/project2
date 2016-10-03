@@ -54,7 +54,7 @@ void exit (int status) {
 	//close fd, remove children from children list????
 	struct thread* t = thread_current();
 	t->exit_status=status;
-	process_exit();
+	thread_exit();
 }
 
 //Runs the executable whose name is given in cmd_line, passing any given arguments, and returns the new process's program id (pid). Must return pid -1, which otherwise should not be a valid pid, if the program cannot load or run for any reason. Thus, the parent process cannot return from the exec until it knows whether the child process successfully loaded its executable. You must use appropriate synchronization to ensure this.
@@ -285,17 +285,17 @@ syscall_handler (struct intr_frame *f) {
 	sp++;
 	switch (sys_call) {
 		case SYS_HALT:                   /* Halt the operating system. */
-			printf("halt syscall\n");
+			//printf("halt syscall\n");
 			halt ();
 			break;
 		case SYS_EXIT:                   /* Terminate this process. */
-		 printf("exit syscall\n");
+		// printf("exit syscall\n");
 			status = *sp;
 			exit (status);
 			break;
 		case SYS_EXEC:                   /* Start another process. */
 			command = (char*) *sp;
-		 printf("exec syscall\n");
+		// printf("exec syscall\n");
 			if(!valid_pointer(command, false, f)){
 				exit(-1);
 				return;
@@ -306,13 +306,12 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_WAIT:                   /* Wait for a child process to die. */
 			pid = *sp;
 			//check valid pid???
-		 printf("wait syscall\n");
+		 //printf("wait syscall\n");
 			f->eax = (uint32_t) wait (pid);
 			break;
 		case SYS_CREATE:                /* Create a file. */
 			file = (char*) *sp;
 			
-		 printf("create syscall\n");
 			if(!valid_pointer(file, false, f)){ 
 				exit(-1);
 				return; 
@@ -324,7 +323,6 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_REMOVE:             /* Delete a file. */
 			file = (char*) *sp;
 			if(!valid_pointer(file, false, f)){ 
-		 printf("remove syscall\n");
 				exit(-1);
 				return; 
 			}
@@ -332,7 +330,6 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_OPEN:               /* Open a file. */
 			file = (char*) *sp;
-		 printf("open syscall\n");
 			if(!valid_pointer(sp, false, f)){ 
 				exit(-1);
 				return; 
@@ -342,11 +339,9 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_FILESIZE:          /* Obtain a file's size. */
 			fd = *sp;
 			f->eax = (uint32_t) filesize (fd);
-		 printf("size syscall\n");
 			break;
 		case SYS_READ:            /* Read from a file. */
 			fd = *sp;
-		 printf("read syscall\n");
 			if(fd < 0 || fd > thread->fileTableSz){
 				f->eax = -1;
 				return;
@@ -380,7 +375,6 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_SEEK:              /* Change position in a file. */
 			fd = *sp;
-		 printf("seek syscall\n");
 			if(fd < 0 || fd > thread->fileTableSz){
 				f->eax = -1;
 				return;
@@ -391,7 +385,6 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_TELL:               /* Report current position in a file. */
 			fd = *sp;
-		 printf("tell syscall\n");
 			if(fd < 0 || fd > thread->fileTableSz){
 				f->eax = -1;
 				return;
@@ -400,7 +393,6 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_CLOSE:              /* Close a file. */
 			fd = *sp;
-		 printf("close syscall\n");
 			if(fd < 0 || fd > thread->fileTableSz){
 				f->eax = -1;
 				return;
