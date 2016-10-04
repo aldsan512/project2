@@ -27,11 +27,6 @@ typedef struct{
 	struct semaphore* parentLock;
 }parentStruct;
 
-
-
-
-
-
 static thread_func start_process NO_RETURN;
 static bool load (void* cmdline, void (**eip) (void), void **esp);
 
@@ -52,7 +47,7 @@ tid_t process_execute (const char *file_name) {
 
   /* Create a new thread to execute FILE_NAME. */
 //  	printf("%s is the file_name I am in process_execute\n",file_name);
-        parentStruct* comm=(parentStruct*)palloc_get_page(0);
+    parentStruct* comm=(parentStruct*)palloc_get_page(0);
 	if(comm==NULL){
 		return TID_ERROR;//fix this
 	} 
@@ -62,8 +57,8 @@ tid_t process_execute (const char *file_name) {
 	sema_init(comm->parentLock,0);
 	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);
 	sema_down(comm->parentLock);
-	if (tid == TID_ERROR){
-    		palloc_free_page (fn_copy); 
+	if (tid == TID_ERROR || tid < 0){
+    	palloc_free_page (fn_copy); 
 		return TID_ERROR;
 	}
 	intr_set_level(INTR_OFF);
@@ -142,6 +137,7 @@ int process_wait (tid_t child_tid UNUSED) {
 		//	while(child_t->isLocked==true){}
 			sema_down(&child_t->wait_lock);
 			int status = child_t->exit_status;
+			list_remove(&child_t->child);
 			sema_up(&child_t->dead_lock);
 			return status;
 		}
@@ -156,8 +152,15 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
   	cur->isLocked=false;
-  	file_allow_write(cur->myFile);
-  	file_close(cur->myFile);
+  	if(cur->myFile != NULL){
+  	  file_close(cur->myFile);
+	}
+	int i;
+	for(i = 2; i < cur->fileTableSz; i++){
+		if(cur->fileTable[i] != NULL){
+			close(i);
+		}
+	}
   	//sema_up(cur->wait_lock);
      /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -379,12 +382,11 @@ load (void* file_name, void (**eip) (void), void **esp)
   *eip = (void (*) (void)) ehdr.e_entry;
 
   success = true;
-
+	file_deny_write(file);
+    t->myFile = file;
  done:
   /* We arrive here whether the load is successful or not. */
   //file_close (file);
-  file_deny_write(file);
-  t->myFile = file;
   return success;
 }
 /* load() helpers. */

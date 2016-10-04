@@ -50,6 +50,8 @@ void exit (int status) {
 	//close fd, remove children from children list????
 	struct thread* t = thread_current();
 	t->exit_status=status;
+	//close all fd's
+	//remove all children from parent list???
 	printf("%s: exit(%d)\n",t->name, t->exit_status);
 	//char* fileName=t->name;
 	//char* exitStatus=t->exit_status+'0';
