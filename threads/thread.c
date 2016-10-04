@@ -292,11 +292,11 @@ thread_exit (void)
      and schedule another process.  That process will destroy us
      when it calls thread_schedule_tail(). */
   intr_disable ();
-printf("about to do list_remove");
+//printf("about to do list_remove");
   list_remove (&thread_current()->allelem);
-printf("done wiht list_remove");
+//printf("done wiht list_remove");
   thread_current ()->status = THREAD_DYING;
-printf("about to call schedule");
+//printf("about to call schedule");
   schedule ();
   NOT_REACHED ();
 }
