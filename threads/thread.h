@@ -103,7 +103,7 @@ struct thread
 	bool isLocked;
 	struct semaphore wait_lock;
 	struct semaphore dead_lock;
-//	struct file* myFile;
+	struct file* myFile;
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */

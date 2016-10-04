@@ -156,6 +156,8 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
   	cur->isLocked=false;
+  	file_allow_write(cur->myFile);
+  	file_close(cur->myFile);
   	//sema_up(cur->wait_lock);
      /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -174,7 +176,7 @@ process_exit (void)
       pagedir_destroy (pd);
     }
 	//printf("%s: exit(%d)",fileName,exitStatus);
-   sema_up(&cur->wait_lock);
+	sema_up(&cur->wait_lock);
 	sema_down(&cur->dead_lock);
 	
 //	thread_exit();
@@ -294,9 +296,8 @@ load (void* file_name, void (**eip) (void), void **esp)
       printf ("load: %s: open failed\n", myStruct->fileName);
       goto done; 
     }
-//	t->myFile=file;
-    //file_deny_write(t->myFile); //find somewhere to allow write later???
-						   //maybe add file name to thread to allow exit() to allow write afterwards
+	//file_deny_write(file);
+	//t->myFile = file;
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -381,7 +382,9 @@ load (void* file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+  //file_close (file);
+  file_deny_write(file);
+  t->myFile = file;
   return success;
 }
 /* load() helpers. */
