@@ -155,6 +155,10 @@ int filesize (int fd) {
 //Reads size bytes from the file open as fd into buffer. Returns the number of bytes actually read (0 at end of file), or -1 if the file could not be read (due to a condition other than end of file). Fd 0 reads from the keyboard using input_getc().
 int read (int fd, void *buffer, unsigned size) {
 	lock_acquire(&l);
+	if(size == 0){
+			lock_release(&l);
+			return 0;
+	}
 	int bytes = 0;
 	char* read_buffer = (char*) buffer;
 	if (fd == 1 || fd < 0){
@@ -195,7 +199,11 @@ Writing past end-of-file would normally extend the file, but file growth is not 
 Fd 1 writes to the console. Your code to write to the console should write all of buffer in one call to putbuf(), at least as long as size is not bigger than a few hundred bytes. (It is reasonable to break up larger buffers.) Otherwise, lines of text output by different processes may end up interleaved on the console, confusing both human readers and our grading scripts.
 */
 int write (int fd, const void *buffer, unsigned size) {
-	//lock_acquire(&l);
+	lock_acquire(&l);
+	if(size == 0){
+		lock_release(&l);
+		return 0;
+	}
 	int bytes = 0;
 	if (fd <= 0) {
 		bytes = -1;
@@ -206,12 +214,12 @@ int write (int fd, const void *buffer, unsigned size) {
 	} else {
 		struct thread* thread= thread_current();
 		if(fd < 0 || fd > thread->fileTableSz){
-			//lock_release(&l);
+			lock_release(&l);
 			return -1;
 		}
 		struct file* file= thread->fileTable[fd];
 		if(file==NULL){
-			//lock_release(&l);
+			lock_release(&l);
 			return -1;
 		}
 	//	if(file->deny_write) {
@@ -220,7 +228,7 @@ int write (int fd, const void *buffer, unsigned size) {
 	//	}
 		bytes=file_write(file,buffer,size);
 	}
-	//lock_release(&l);
+	lock_release(&l);
 	return bytes;
 }
 
@@ -338,7 +346,7 @@ syscall_handler (struct intr_frame *f) {
 				exit(-1);
 				return; 
 			}
-			open (file);
+			f->eax = open (file);
 			break;
 		case SYS_FILESIZE:          /* Obtain a file's size. */
 			fd = *sp;
