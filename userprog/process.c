@@ -19,6 +19,7 @@
 #include "threads/vaddr.h"
 #include "threads/synch.h"
 #include <list.h>
+#include "vm/frame.h"
 //I wrote this//
 typedef struct{
 	char* fileName;
@@ -40,25 +41,29 @@ tid_t process_execute (const char *file_name) {
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
-  	fn_copy = palloc_get_page (0);
+  	//fn_copy = palloc_get_page (0);
+  	fn_copy = getFrame (thread_current);
   	if (fn_copy == NULL)
     		return TID_ERROR;
   	strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
 //  	printf("%s is the file_name I am in process_execute\n",file_name);
-    parentStruct* comm=(parentStruct*)palloc_get_page(0);
+    //parentStruct* comm=(parentStruct*)palloc_get_page(0);
+    parentStruct* comm=(parentStruct*)getFrame(thread_current);
 	if(comm==NULL){
 		return TID_ERROR;//fix this
 	} 
 	comm->fileName=strtok_r((char*)fn_copy," ",&(comm->args));
     comm->fileLen=strlen(comm->fileName)+1;
-	comm->parentLock=(struct semaphore*)palloc_get_page(0);
+	//comm->parentLock=(struct semaphore*)palloc_get_page(0);
+	comm->parentLock=(struct semaphore*)getFrame(thread_current);
 	sema_init(comm->parentLock,0);
 	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);
 	sema_down(comm->parentLock);
 	if (tid == TID_ERROR || tid < 0){
-    	palloc_free_page (fn_copy); 
+    	//palloc_free_page (fn_copy); 
+    	releaseFrame (thread_current); 
 		return TID_ERROR;
 	}
 	intr_set_level(INTR_OFF);
@@ -101,7 +106,8 @@ static void start_process (void *file_name_){
   /* If load failed, quit. */
   parentStruct* parent=(parentStruct*)file_name_;
   sema_up(parent->parentLock);
-  palloc_free_page (file_name_);
+  //palloc_free_page (file_name_);
+  releaseFrame (thread_current);
 
   if (!success){
 	struct thread* currentT=thread_current();
@@ -470,14 +476,16 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
       /* Get a page of memory. */
-      uint8_t *kpage = palloc_get_page (PAL_USER);
+      //uint8_t *kpage = palloc_get_page (PAL_USER);
+      uint8_t *kpage = getFrame (thread_current);
       if (kpage == NULL)
         return false;
 
       /* Load this page. */
       if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
         {
-          palloc_free_page (kpage);
+          //palloc_free_page (kpage);
+          releaseFrame (thread_current);
           return false; 
         }
       memset (kpage + page_read_bytes, 0, page_zero_bytes);
@@ -485,7 +493,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Add the page to the process's address space. */
       if (!install_page (upage, kpage, writable)) 
         {
-          palloc_free_page (kpage);
+          //palloc_free_page (kpage);
+          releaseFrame (thread_current);
           return false; 
         }
 
@@ -504,7 +513,8 @@ static bool setup_stack (void **esp, void* command) {
   uint8_t *kpage;
   bool success = false;
 
-  kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  //kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  kpage = getFrame (thread_current);
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
@@ -568,7 +578,8 @@ static bool setup_stack (void **esp, void* command) {
 
      } 
 	else
-        palloc_free_page (kpage);
+        //palloc_free_page (kpage);
+        releaseFrame (thread_current);
     }
   return success;
 }
