@@ -7,6 +7,7 @@
 #include <string.h>
 #include "threads/vaddr.h"
 #include "threads/thread.h"
+#include "threads/malloc.h"
 static FrameEntry** frameTable;
 static int numFrames;
 void initFrame(size_t numF){
@@ -27,6 +28,7 @@ void* getFrame(struct thread* owner){
 			return frameTable[i]->framePT;
 		}
 	}
+	return NULL;
 }
 bool releaseFrame(struct thread* owner){
 	for(int i=0;i<numFrames;i++){
