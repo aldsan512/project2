@@ -28,8 +28,10 @@ void* getFrame(struct thread* owner){
 			return frameTable[i]->framePT;
 		}
 	}
+	//if above fails, frame evict and return the replaced frame
 	return NULL;
 }
+//should be void* address, multiple frames per owner
 bool releaseFrame(struct thread* owner){
 	for(int i=0;i<numFrames;i++){
 		if(frameTable[i]->owner->tid==owner->tid){

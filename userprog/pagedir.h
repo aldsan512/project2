@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-//Created by team
+//Created by team (can remove now)
 bool pagedir_is_present(uint32_t *pd, const void *upage);
 bool pagedir_is_read_write(uint32_t *pd, const void *upage);
 

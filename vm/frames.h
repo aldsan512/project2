@@ -2,10 +2,12 @@
 #define VM_FRAMES_H
 #include <stdlib.h>
 #include <stdio.h>
+#include "vm/page.h"
 
 typedef struct{
 	void* framePT;
 	struct thread* owner;
+	//struct spte* sup_pte;
 	bool isModified;
 
 }FrameEntry;
