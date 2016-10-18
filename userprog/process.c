@@ -39,23 +39,23 @@ tid_t process_execute (const char *file_name) {
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
-  	//fn_copy = palloc_get_page (0);
-  	fn_copy = getFrame(thread_current());
+  	fn_copy = palloc_get_page (0);
+  	//fn_copy = getFrame(thread_current());
   	if (fn_copy == NULL)
     		return TID_ERROR;
   	strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
 //  	printf("%s is the file_name I am in process_execute\n",file_name);
-    //parentStruct* comm=(parentStruct*)palloc_get_page(0);
-    parentStruct* comm=(parentStruct*)getFrame(thread_current());
+    parentStruct* comm=(parentStruct*)palloc_get_page(0);
+    //parentStruct* comm=(parentStruct*)getFrame(thread_current());
 	if(comm==NULL){
 		return TID_ERROR;//fix this
 	} 
 	comm->fileName=strtok_r((char*)fn_copy," ",&(comm->args));
     comm->fileLen=strlen(comm->fileName)+1;
-	//comm->parentLock=(struct semaphore*)palloc_get_page(0);
-	comm->parentLock=(struct semaphore*)getFrame(thread_current());
+	comm->parentLock=(struct semaphore*)palloc_get_page(0);
+	//comm->parentLock=(struct semaphore*)getFrame(thread_current());
 	sema_init(comm->parentLock,0);
 	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);
 	sema_down(comm->parentLock);
