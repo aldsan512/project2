@@ -43,23 +43,30 @@ void spt_destroy(struct thread* t){
 }
 
 struct spte* getSPTE(void* vadrr){
-	
+	//lookup vaddr in spt hash table
 	
 	
 }
 
-//add file to page table method???
+//call in load_segment and setup_stack
+//add parameters for every spte member
+void create_new_spte(void* vaddr){
+	
+}
 
 //called from page fault handler
 void load_page(void* vaddr){
 	struct* spte = getSPTE(vaddr);
 	//load page
 	if(spte->disk){
-		//load page from disk
 		//get frame
+		//load page from disk to frame
 	} else if (spte->swap){
-		//load page from swap
+		//get frame
+		//tload page from swap to frame
 	} else {
+		//check if in stack space
+		//allocate new page then
 		
 	}
 }
