@@ -465,7 +465,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   
-  t->loadSuccess=true;
+	t->loadSuccess=true;
 	t->fileTable[0]=0;	
 	t->fileTable[1]=1;
 	t->nextfd=2;
@@ -476,7 +476,8 @@ init_thread (struct thread *t, const char *name, int priority)
 //	t->wait_lock = (struct semaphore*) palloc_get_page(0);
 	sema_init(&t->dead_lock,0);
 	sema_init(&t->wait_lock,0);
-t->magic = THREAD_MAGIC;
+	spt_init(t);
+	t->magic = THREAD_MAGIC;
 
 
   old_level = intr_disable ();
