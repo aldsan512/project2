@@ -8,6 +8,7 @@
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
+#include "userprog/syscall.h"
 #include "filesys/directory.h"
 #include "filesys/file.h"
 #include "filesys/filesys.h"
@@ -39,8 +40,8 @@ tid_t process_execute (const char *file_name) {
 
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
-  	//fn_copy = palloc_get_page (0);
-  	fn_copy = getFrame(thread_current());
+  	fn_copy = palloc_get_page (0);
+  	//fn_copy = getFrame(thread_current());
   	if (fn_copy == NULL)
     		return TID_ERROR;
   	strlcpy (fn_copy, file_name, PGSIZE);
