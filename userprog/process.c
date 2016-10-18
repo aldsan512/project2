@@ -178,10 +178,12 @@ process_exit (void)
          directory before destroying the process's page
          directory, or our active page directory will be one
          that's been freed (and cleared). */
+      spt_destroy(cur); //free frames
       cur->pagedir = NULL;
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+    
 	//printf("%s: exit(%d)",fileName,exitStatus);
 	sema_up(&cur->wait_lock);
 	sema_down(&cur->dead_lock);
