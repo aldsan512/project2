@@ -28,9 +28,9 @@ struct spte {
 	struct hash_elem elem;	
 };
 
-void spt_init(struct thread* t)
-void spt_destroy(struct thread* t)
-struct spte* getSPTE(void* vadrr){;
+void spt_init(struct thread* t);
+void spt_destroy(struct thread* t);
+struct spte* getSPTE(void* vadrr);
 void create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable );
 void load_page(void* vaddr);
 

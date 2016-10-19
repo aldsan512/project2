@@ -49,21 +49,21 @@ tid_t process_execute (const char *file_name) {
 
   /* Create a new thread to execute FILE_NAME. */
 //  	printf("%s is the file_name I am in process_execute\n",file_name);
-    //parentStruct* comm=(parentStruct*)palloc_get_page(0);
-    parentStruct* comm=(parentStruct*)getFrame(thread_current());
+    parentStruct* comm=(parentStruct*)palloc_get_page(0);
+    //parentStruct* comm=(parentStruct*)getFrame(thread_current());
 	if(comm==NULL){
 		return TID_ERROR;//fix this
 	} 
 	comm->fileName=strtok_r((char*)fn_copy," ",&(comm->args));
     comm->fileLen=strlen(comm->fileName)+1;
-	//comm->parentLock=(struct semaphore*)palloc_get_page(0);
-	comm->parentLock=(struct semaphore*)getFrame(thread_current());
+	comm->parentLock=(struct semaphore*)palloc_get_page(0);
+	//comm->parentLock=(struct semaphore*)getFrame(thread_current());
 	sema_init(comm->parentLock,0);
 	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);
 	sema_down(comm->parentLock);
 	if (tid == TID_ERROR || tid < 0){
-    	//palloc_free_page (fn_copy); 
-    	releaseFrame (thread_current()); 
+    	palloc_free_page (fn_copy); 
+    	//releaseFrame (thread_current()); 
 		return TID_ERROR;
 	}
 	intr_set_level(INTR_OFF);
@@ -106,8 +106,8 @@ static void start_process (void *file_name_){
   /* If load failed, quit. */
   parentStruct* parent=(parentStruct*)file_name_;
   sema_up(parent->parentLock);
-  //palloc_free_page (file_name_);
-  releaseFrame (thread_current());
+  palloc_free_page (file_name_);
+  //releaseFrame (thread_current());
 
   if (!success){
 	struct thread* currentT=thread_current();
@@ -477,7 +477,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
-	  create_new_spte(upage, DISK, read_bytes, zero_bytes, file, writeable); 
+	  create_new_spte(upage, DISK, read_bytes, zero_bytes, file, writable); 
 		
 //replace this code with allocating new spte entries
 //spte should have read bytes etc.
@@ -518,7 +518,7 @@ static bool setup_stack (void **esp, void* command) {
 	//printf("i am in setup_stack\n");	
  // uint8_t *kpage;
     bool success = true;
-	create_new_spte((uint8_t *) PHYS_BASE) - PGSIZE, NONE, 0, 0, NULL, true);
+	create_new_spte(((uint8_t *) PHYS_BASE) - PGSIZE, NONE, 0, 0, NULL, true);
   //kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   //replace kpage code with adding spte for phys_base-pgsize
  // kpage = getFrame (thread_current());

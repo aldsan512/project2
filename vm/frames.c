@@ -9,6 +9,7 @@
 #include "threads/thread.h"
 #include "threads/malloc.h"
 #include "userprog/pagedir.h"
+#include "vm/swap.h"
 static FrameEntry** frameTable;
 static int numFrames;
 void initFrame(size_t numF){	//shouldn't these be palloc_get_page(PAL_USER | PAL_ZERO)'s ???? and not malloc 
@@ -35,7 +36,6 @@ void* getFrame(struct spte* owner){
 	//if above fails, frame evict and return the replaced frame
 	return evictFrame(owner);
 }
-//should be void* address, multiple frames per owner
 bool releaseFrame(struct spte* owner){
 	for(int i=0;i<numFrames;i++){
 		if(frameTable[i]->pte->vaddr==owner->vaddr){
@@ -52,7 +52,7 @@ void* evictFrame(struct spte* owner){
 			//roll over//
 			i=0;
 			if(pagedir_is_dirty(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr)){
-				//put in swap table
+				swapFrame(frameTable[i]->pte, owner);	
 			}
 			else{
 				frameTable[i]->pte=owner;
