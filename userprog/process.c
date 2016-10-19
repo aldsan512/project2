@@ -470,12 +470,16 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0) 
     {
+		
       /* Calculate how to fill this page.
          We will read PAGE_READ_BYTES bytes from FILE
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
+
+//replace this code with allocating new spte entries
+//spte should have read bytes etc.
       /* Get a page of memory. */
       //uint8_t *kpage = palloc_get_page (PAL_USER);
       uint8_t *kpage = getFrame (thread_current());
@@ -515,10 +519,12 @@ static bool setup_stack (void **esp, void* command) {
   bool success = false;
 
   //kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+  //replace kpage code with adding spte for phys_base-pgsize
   kpage = getFrame (thread_current());
   if (kpage != NULL) 
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true); 	//spte points to phys_base-pgsize
+      //vaddr.h or round.h function to round vaddr to page
       if (success){
         *esp = PHYS_BASE;
         char* save_ptr;

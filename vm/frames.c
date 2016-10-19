@@ -24,6 +24,7 @@ void initFrame(size_t numF){
 }
 void* getFrame(struct spte* owner){
 	for(int i=0;i<numFrames;i++){
+
 		if(frameTable[i]->pte==NULL){
 			frameTable[i]->pte=owner;
 			return frameTable[i]->framePT;

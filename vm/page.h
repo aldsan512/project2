@@ -7,6 +7,9 @@ struct spte {
 	bool swap;
 	bool memory; 	//need?
 	
+	//bytes read, etc. for load segment
+	//swap index???
+	
 	struct thread* t;
 	
 	void* vaddr;
