@@ -6,13 +6,13 @@
 
 typedef struct{
 	void* framePT;
-	struct thread* owner;
-	//struct spte* sup_pte;
-	bool isModified;
+	struct spte* pte;
+	bool isModified;//
 
 }FrameEntry;
 void initFrame(size_t numFrames);
-void* getFrame(struct thread* owner);
-bool releaseFrame(struct thread* owner);
+void* getFrame(struct spte* owner);
+bool releaseFrame(struct spte* owner);
+void* evictFrame();
 #endif /* vm/frames.h */
 

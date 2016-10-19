@@ -1,11 +1,11 @@
 #ifndef VM_PAGES_H
 #define VM_PAGES_H
-
-
+#include <stdlib.h>
+#include <hash.h>
 struct spte {
-	boolean disk;
-	boolean swap;
-	boolean memory; 	//need?
+	bool disk;
+	bool swap;
+	bool memory; 	//need?
 	
 	struct thread* t;
 	

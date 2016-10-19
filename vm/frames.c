@@ -8,23 +8,24 @@
 #include "threads/vaddr.h"
 #include "threads/thread.h"
 #include "threads/malloc.h"
+#include "userprog/pagedir.h"
 static FrameEntry** frameTable;
 static int numFrames;
 void initFrame(size_t numF){
-	numFrames=numF;
+	numFrames=numF-1;
 	frameTable=(FrameEntry**)malloc(sizeof(FrameEntry*)*numFrames);
 	for(int i=0;i < numFrames;i++){
 		frameTable[i]=(FrameEntry*)malloc(sizeof(FrameEntry));
 		frameTable[i]->framePT=palloc_get_page(PAL_USER| PAL_ZERO);
 		frameTable[i]->isModified=false;
-		frameTable[i]->owner=NULL;
+		frameTable[i]->pte=NULL;
 	}
 	
 }
-void* getFrame(struct thread* owner){
+void* getFrame(struct spte* owner){
 	for(int i=0;i<numFrames;i++){
-		if(frameTable[i]->owner==NULL){
-			frameTable[i]->owner=owner;
+		if(frameTable[i]->pte==NULL){
+			frameTable[i]->pte=owner;
 			return frameTable[i]->framePT;
 		}
 	}
@@ -32,13 +33,20 @@ void* getFrame(struct thread* owner){
 	return NULL;
 }
 //should be void* address, multiple frames per owner
-bool releaseFrame(struct thread* owner){
+bool releaseFrame(struct spte* owner){
 	for(int i=0;i<numFrames;i++){
-		if(frameTable[i]->owner->tid==owner->tid){
-			frameTable[i]->owner=NULL;
+		if(frameTable[i]->pte->vaddr==owner->vaddr){
+			frameTable[i]->pte=NULL;
 			memset (frameTable[i]->framePT,0,PGSIZE);
 			return true;
 		}
 	}
 	return false;	
 }
+void* evictFrame(){
+	for(int i=0;i<=numFrames;i++){
+		pagedir_is_accessed(frameTable[i]->pte->t->pagedir,frameTable[i]->pte->vaddr);
+
+	}
+}
+
