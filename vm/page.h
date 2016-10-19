@@ -13,6 +13,8 @@ struct spte {
 	
 	struct hash_elem elem;	
 };
+unsigned page_hash_func(const struct hash_elem* e, void* aux);
+bool page_less_func (const struct hash_elem *a, const struct hash_elem* b, void* aux);
 
 
 #endif //VM_PAGES_H

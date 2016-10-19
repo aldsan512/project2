@@ -45,7 +45,21 @@ bool releaseFrame(struct spte* owner){
 }
 void* evictFrame(){
 	for(int i=0;i<=numFrames;i++){
-		pagedir_is_accessed(frameTable[i]->pte->t->pagedir,frameTable[i]->pte->vaddr);
+		if(pagedir_is_accessed(frameTable[i]->pte->t->pagedir,frameTable[i]->pte->vaddr)){
+			//if it has been accessed set accessed to 0
+			pagedir_set_accessed(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr,0);
+		}
+		else{
+			//we evict
+			if( pagedir_is_dirty(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr)){
+				//put in swap table
+			}
+			else{	
+				//just evict its code
+			
+			}
+ 
+		}
 
 	}
 }
