@@ -31,7 +31,7 @@ void* getFrame(struct spte* owner){
 		}
 	}
 	//if above fails, frame evict and return the replaced frame
-	return NULL;
+	return evictFrame(owner);
 }
 //should be void* address, multiple frames per owner
 bool releaseFrame(struct spte* owner){
@@ -44,23 +44,35 @@ bool releaseFrame(struct spte* owner){
 	}
 	return false;	
 }
-void* evictFrame(){
+void* evictFrame(struct spte* owner){
 	for(int i=0;i<=numFrames;i++){
+		if(i==numFrames){
+			//roll over//
+			i=0;
+			if(pagedir_is_dirty(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr)){
+				//put in swap table
+			}
+			else{
+				frameTable[i]->pte=owner;
+				return frameTable[i]->framePT;
+			}
+		}
 		if(pagedir_is_accessed(frameTable[i]->pte->t->pagedir,frameTable[i]->pte->vaddr)){
 			//if it has been accessed set accessed to 0
 			pagedir_set_accessed(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr,0);
 		}
-		else{
-			//we evict
-			if( pagedir_is_dirty(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr)){
+		else if( pagedir_is_dirty(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr)){
 				//put in swap table
-			}
-			else{	
-				//just evict its code
-			
-			}
- 
+				//two cases if swap table full panic
+				
 		}
+		else{
+				//frame is code just evict and read from disk later	
+				frameTable[i]->pte=owner;
+				return frameTable[i]->framePT;
+						
+		}
+ 
 
 	}
 }
