@@ -2,10 +2,21 @@
 #define VM_PAGES_H
 #include <stdlib.h>
 #include <hash.h>
+
+typedef enum {
+	EMPTY, 
+	DISK,
+	SWAP,
+	MEM
+} location ;
+
 struct spte {
-	bool disk;
-	bool swap;
-	bool memory; 	//need?
+	location loc;	//need?
+	
+	 int read_bytes;
+     int zero_bytes;
+     bool writeable;
+     struct file* file;
 	
 	//bytes read, etc. for load segment
 	//swap index???
@@ -16,8 +27,14 @@ struct spte {
 	
 	struct hash_elem elem;	
 };
-unsigned page_hash_func(const struct hash_elem* e, void* aux);
-bool page_less_func (const struct hash_elem *a, const struct hash_elem* b, void* aux);
+
+void spt_init(struct thread* t)
+void spt_destroy(struct thread* t)
+struct spte* getSPTE(void* vadrr){;
+void create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable );
+void load_page(void* vaddr);
+
+
 
 
 #endif //VM_PAGES_H

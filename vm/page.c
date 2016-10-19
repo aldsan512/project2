@@ -29,8 +29,8 @@ bool page_less_func (const struct hash_elem *a,
 /* Performs some operation on hash element E, given auxiliary
    data AUX. */
 void page_action_func (struct hash_elem *e, void *aux){
-	struct thread* t = current_thread();
-	releaseFrame(t); 	//wrong
+	struct spte* sup_pte = hash_entry(e, struct spte, elem);
+	releaseFrame(sup_pte); 
 }
 
 void spt_init(struct thread* t){
@@ -50,24 +50,52 @@ struct spte* getSPTE(void* vadrr){
 
 //call in load_segment and setup_stack
 //add parameters for every spte member
-void create_new_spte(void* vaddr){
-	
+void create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable ){
+	struct spte* new_spte = (sttruct spte*) malloc(sizeof(struct spte));
+	struct thread* t = current_thread();
+	new_spte->thread = t;
+	new_spte->loc = loc;
+	new_spte->read_bytes = read_bytes;
+	new_spte->zero_bytes = zero_bytes;
+	new_spte->file = file;
+	new_spte->writeable = writeable;
+	hash_insert(&t->spt, &new_spte->elem);
 }
 
 //called from page fault handler
-void load_page(void* vaddr){
-	struct* spte = getSPTE(vaddr);
-	//load page
-	if(spte->disk){
-		//get frame
-		//load page from disk to frame
-	} else if (spte->swap){
-		//get frame
-		//tload page from swap to frame
-	} else {
+bool load_page(void* vaddr){
+	//round down vaddr first
+	struct spte* s_pte = getSPTE(vaddr);
+	void* kpage = getFrame(s_pte);
+	if(s_pte == NULL){
 		//check if in stack space
-		//allocate new page then
+	}
+	//load page
+	
+	if(spte->loc == DISK){
+      if (kpage == NULL)
+        return false;
+
+      /* Load this page. */
+      if (file_read (s_pte->file, kpage, s_pte->page_read_bytes) != (int) s_pte->page_read_bytes)
+        {
+         releaseFrame(s_pte);
+         return false; 
+        }
+      memset (kpage + s_pte->page_read_bytes, 0, s_pte->page_zero_bytes);
+
+      /* Add the page to the process's address space. */
+      if (!install_page (s_pte->vaddr, kpage, s_pte->writable)) 
+        {
+          releaseFrame(s_pte);
+		  return false
+        }*/
+		//load page from disk to frame
+	} else if (spte->loc == SWAP){
 		
+		//load page from swap to frame
+	} else if (spte->loc == STACK) {
+		   
 	}
 }
 
