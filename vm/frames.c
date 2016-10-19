@@ -11,7 +11,9 @@
 #include "userprog/pagedir.h"
 static FrameEntry** frameTable;
 static int numFrames;
-void initFrame(size_t numF){
+void initFrame(size_t numF){	//shouldn't these be palloc_get_page(PAL_USER | PAL_ZERO)'s ???? and not malloc 
+								//malloc calls palloc_get_page(0) which is kernel space, so this won't work
+								
 	numFrames=numF-1;
 	frameTable=(FrameEntry**)malloc(sizeof(FrameEntry*)*numFrames);
 	for(int i=0;i < numFrames;i++){
@@ -25,7 +27,7 @@ void initFrame(size_t numF){
 void* getFrame(struct spte* owner){
 	for(int i=0;i<numFrames;i++){
 
-		if(frameTable[i]->pte==NULL){
+		if(frameTable[i]->pted==NULL){
 			frameTable[i]->pte=owner;
 			return frameTable[i]->framePT;
 		}
