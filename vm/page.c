@@ -85,6 +85,7 @@ bool load_page(void* vaddress, void* esp){
 	void* vaddr = pg_round_down(vaddress); 	//header???
 	struct spte* s_pte = getSPTE(vaddr);
 	void* kpage = getFrame(s_pte);
+	printf("Loading page\n");
 	if (kpage == NULL){
         return false;
 	}

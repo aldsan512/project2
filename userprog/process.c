@@ -478,7 +478,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
-	  create_new_spte(upage, DISK, read_bytes, zero_bytes, file, writable); 
+	  create_new_spte(upage, DISK, page_read_bytes, page_zero_bytes, file, writable); 
 		
 //replace this code with allocating new spte entries
 //spte should have read bytes etc.
