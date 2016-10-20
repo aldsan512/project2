@@ -10,11 +10,13 @@
 #include "threads/malloc.h"
 #include "userprog/pagedir.h"
 #include "vm/swap.h"
+#include "threads/synch.h"
 static FrameEntry** frameTable;
 static int numFrames;
+static struct lock* myLock;
 void initFrame(size_t numF){	//shouldn't these be palloc_get_page(PAL_USER | PAL_ZERO)'s ???? and not malloc 
 								//malloc calls palloc_get_page(0) which is kernel space, so this won't work
-								
+	lock_init(myLock);								
 	numFrames=numF-1;
 	frameTable=(FrameEntry**)malloc(sizeof(FrameEntry*)*numFrames);
 	for(int i=0;i < numFrames;i++){
@@ -26,8 +28,8 @@ void initFrame(size_t numF){	//shouldn't these be palloc_get_page(PAL_USER | PAL
 	
 }
 void* getFrame(struct spte* owner){
+	lock_acquire(myLock);
 	for(int i=0;i<numFrames;i++){
-
 		if(frameTable[i]->pted==NULL){
 			frameTable[i]->pte=owner;
 			owner->loc=MEM;
@@ -35,16 +37,21 @@ void* getFrame(struct spte* owner){
 		}
 	}
 	//if above fails, frame evict and return the replaced frame
-	return evictFrame(owner);
+	void* result=evictFrame(owner);
+	lock_release(myLock);
+	return result;
 }
 bool releaseFrame(struct spte* owner){
+	lock_acquire(myLock);
 	for(int i=0;i<numFrames;i++){
 		if(frameTable[i]->pte->vaddr==owner->vaddr){
 			frameTable[i]->pte=NULL;
 			memset (frameTable[i]->framePT,0,PGSIZE);
+			lock_release(myLock);
 			return true;
 		}
 	}
+	lock_release(myLock);
 	return false;	
 }
 void* evictFrame(struct spte* owner){
@@ -78,4 +85,19 @@ void* evictFrame(struct spte* owner){
 
 	}
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

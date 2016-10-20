@@ -41,7 +41,7 @@ void* retrieveFromSwap(struct spte* retrieved,FrameEntry* frameEntry){
 		block_sector_t sector=spte->swapLoc*8;
 		char* buffer=(char*)frameEntry->framePT;
 		for(int i=0;i<8;i++){
-			block_write(swapArea,sector,buffer);
+			block_read(swapArea,sector,buffer);
 			buffer=buffer+512;
 			sector++;
 		}
