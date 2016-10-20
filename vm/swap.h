@@ -10,5 +10,5 @@ typedef struct{
 
 void* swapFrame(struct spte* victim, FrameEntry* frameEntry,struct spte* newGuy);
 void initSwapTable(void);
-void* retrieveFromSwap(struct spte* retrieved,FrameEntry* frameEntry);
+bool retrieveFromSwap(struct spte* retrieved, void* framePT);
 #endif

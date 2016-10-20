@@ -22,6 +22,7 @@
 #include <list.h>
 #include "vm/frames.h"
 #include "vm/page.h"
+
 typedef struct{
 	char* fileName;
 	char* args;
@@ -399,7 +400,7 @@ load (void* file_name, void (**eip) (void), void **esp)
 }
 /* load() helpers. */
 
-static bool install_page (void *upage, void *kpage, bool writable);
+bool install_page (void *upage, void *kpage, bool writable);
 
 /* Checks whether PHDR describes a valid, loadable segment in
    FILE and returns true if so, false otherwise. */
@@ -518,15 +519,16 @@ static bool setup_stack (void **esp, void* command) {
 	//printf("i am in setup_stack\n");	
  // uint8_t *kpage;
     bool success = true;
-	create_new_spte(((uint8_t *) PHYS_BASE) - PGSIZE, NONE, 0, 0, NULL, true);
+	struct spte* s_pte = create_new_spte(((uint8_t *) PHYS_BASE) - PGSIZE, MEM, 0, 0, NULL, true);
   //kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   //replace kpage code with adding spte for phys_base-pgsize
- // kpage = getFrame (thread_current());
-  //if (kpage != NULL) 
-   // {
-     // success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true); 	//spte points to phys_base-pgsize
-      //vaddr.h or round.h function to round vaddr to page
-     // if (success){
+  //struct spte* s_pte = create_new_spte(PHYS_BASE - PGSIZE, EMPTY, 0, 0, NULL, true);
+  void* kpage = getFrame (s_pte);
+  if (kpage != NULL) 
+    {
+     success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true); 	//spte points to phys_base-pgsize
+     //vaddr.h or round.h function to round vaddr to page
+     if (success){
         *esp = PHYS_BASE;
         char* save_ptr;
         char* token;
@@ -584,13 +586,14 @@ static bool setup_stack (void **esp, void* command) {
 	*esp=argPt;	//is this right return addrress???
 	        //hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
 
-     //} 
-	//else
+     } 
+	else
         //palloc_free_page (kpage);
-       // releaseFrame (thread_current());
-   // }
+       releaseFrame (s_pte);
+    }
   return success;
 }
+
 
 /* Adds a mapping from user virtual address UPAGE to kernel
    virtual address KPAGE to the page table.
@@ -600,13 +603,17 @@ static bool setup_stack (void **esp, void* command) {
    KPAGE should probably be a page obtained from the user pool
    with palloc_get_page().
    Returns true on success, false if UPAGE is already mapped or
-   if memory allocation fails. */
-static bool
-install_page (void *upage, void *kpage, bool writable)
+   if memory allocation fails. */ 
+  
+static bool install_page_static (void *upage, void *kpage, bool writable)
 {
 	struct thread *t = thread_current ();
   /* Verify that there's not already a page at that virtual
      address, then map our page there. */
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
+}
+
+bool install_page (void *upage, void *kpage, bool writable) {
+	return install_page_static(upage, kpage, writable);
 }
