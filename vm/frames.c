@@ -30,6 +30,7 @@ void* getFrame(struct spte* owner){
 
 		if(frameTable[i]->pted==NULL){
 			frameTable[i]->pte=owner;
+			owner->loc=MEM;
 			return frameTable[i]->framePT;
 		}
 	}
@@ -63,16 +64,15 @@ void* evictFrame(struct spte* owner){
 			//if it has been accessed set accessed to 0
 			pagedir_set_accessed(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr,0);
 		}
+		//page has been accessed
 		else if( pagedir_is_dirty(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr)){
-				//put in swap table
-				//two cases if swap table full panic
-				
+				//page is dirty need to put it in swap table
+				swapFrame(frameTable[i]->pte, frameTable[i],owner);					
 		}
 		else{
 				//frame is code just evict and read from disk later	
 				frameTable[i]->pte=owner;
 				return frameTable[i]->framePT;
-						
 		}
  
 

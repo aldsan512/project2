@@ -12,7 +12,7 @@ typedef enum {
 
 struct spte {
 	location loc;	//need?
-	
+	int swapLoc;	//AS i think loc and swapLoc are needed idk why we need the 4 data types below
 	 int read_bytes;
      int zero_bytes;
      bool writeable;

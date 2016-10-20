@@ -1,4 +1,4 @@
-#include "swap.h"
+#include "vm/swap.h"
 #include "devices/block.h"
 #include "vm/frames.h"
 
@@ -12,7 +12,7 @@
 swapTE* swapTable;
 int numSwapEntries;
 struct block* swapArea;
-void* swapFrame(struct spte* victim, struct FrameEntry* frameEntry,struct spte* newGuy){
+void* swapFrame(struct spte* victim,FrameEntry* frameEntry,struct spte* newGuy){
 	for(int i=0;i<numSwapEntries; i++){
 		//put the victim here
 		if(swapTable[i].isOccupied==false){
@@ -29,13 +29,26 @@ void* swapFrame(struct spte* victim, struct FrameEntry* frameEntry,struct spte* 
 			victim->loc=SWAP;
 			memset (frameEntry->framePT,0,PGSIZE);
 			frameEntry->pte=newGuy;
+			newGuy->loc=MEM;
 			return frameEntry->framePT;
 		}
 			//swap slot taken up
 	}
 	//kernel panic all slots are taken
 }
-void initSwapTable(){
+void* retrieveFromSwap(struct spte* retrieved,FrameEntry* frameEntry){
+	if(spte->loc!=SWAP){return NULL;}
+		block_sector_t sector=spte->swapLoc*8;
+		char* buffer=(char*)frameEntry->framePT;
+		for(int i=0;i<8;i++){
+			block_write(swapArea,sector,buffer);
+			buffer=buffer+512;
+			sector++;
+		}
+		swapTable[spte->swapLoc].isOccupied=false;
+
+}
+void initSwapTable(void){
 	swapArea=block_get_role(BLOCK_SWAP);
 	int numSwapEntries=block_size(swapArea)/8;
 	swapTable=malloc(size_of(swapTE)*numSwapEntries);
