@@ -52,7 +52,7 @@ void* evictFrame(struct spte* owner){
 			//roll over//
 			i=0;
 			if(pagedir_is_dirty(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr)){
-				swapFrame(frameTable[i]->pte, owner);	
+				swapFrame(frameTable[i]->pte, frameTable[i],owner);	
 			}
 			else{
 				frameTable[i]->pte=owner;
