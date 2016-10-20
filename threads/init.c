@@ -101,7 +101,7 @@ main (void)
   malloc_init ();
   paging_init ();
   //AS initialize the swaptable
-    initSwapTable();
+   
 
 
   /* Segmentation. */
@@ -400,6 +400,7 @@ locate_block_devices (void)
   locate_block_device (BLOCK_SCRATCH, scratch_bdev_name);
 #ifdef VM
   locate_block_device (BLOCK_SWAP, swap_bdev_name);
+   initSwapTable();
 #endif
 }
 

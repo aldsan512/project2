@@ -62,6 +62,6 @@ void initSwapTable(void){
 	for(int i=0;i<numSwapEntries;i++){
 		swapTable[i].isOccupied=false;
 	}
-	//initialize the swap area
+	//initialize the swap area//
 	
 }
