@@ -21,6 +21,7 @@
 #include "threads/synch.h"
 #include <list.h>
 #include "vm/frames.h"
+#include "vm/page.h"
 typedef struct{
 	char* fileName;
 	char* args;
@@ -61,8 +62,8 @@ tid_t process_execute (const char *file_name) {
 	tid = thread_create (comm->fileName, PRI_DEFAULT, start_process, comm);
 	sema_down(comm->parentLock);
 	if (tid == TID_ERROR || tid < 0){
-    	//palloc_free_page (fn_copy); 
-    	releaseFrame (thread_current()); 
+    	palloc_free_page (fn_copy); 
+    	//releaseFrame (thread_current()); 
 		return TID_ERROR;
 	}
 	intr_set_level(INTR_OFF);
@@ -105,8 +106,8 @@ static void start_process (void *file_name_){
   /* If load failed, quit. */
   parentStruct* parent=(parentStruct*)file_name_;
   sema_up(parent->parentLock);
-  //palloc_free_page (file_name_);
-  releaseFrame (thread_current());
+  palloc_free_page (file_name_);
+  //releaseFrame (thread_current());
 
   if (!success){
 	struct thread* currentT=thread_current();
@@ -470,34 +471,38 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
   file_seek (file, ofs);
   while (read_bytes > 0 || zero_bytes > 0) 
     {
+		
       /* Calculate how to fill this page.
          We will read PAGE_READ_BYTES bytes from FILE
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
-
+	  create_new_spte(upage, DISK, read_bytes, zero_bytes, file, writable); 
+		
+//replace this code with allocating new spte entries
+//spte should have read bytes etc.
       /* Get a page of memory. */
       //uint8_t *kpage = palloc_get_page (PAL_USER);
-      uint8_t *kpage = getFrame (thread_current());
-      if (kpage == NULL)
-        return false;
+     // uint8_t *kpage = getFrame (thread_current());
+      //if (kpage == NULL)
+       // return false;
 
       /* Load this page. */
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-        {
+     // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
+       // {
           //palloc_free_page (kpage);
-          releaseFrame (thread_current());
-          return false; 
-        }
-      memset (kpage + page_read_bytes, 0, page_zero_bytes);
+         // releaseFrame (thread_current());
+          //return false; 
+       // }
+      //memset (kpage + page_read_bytes, 0, page_zero_bytes);
 
       /* Add the page to the process's address space. */
-      if (!install_page (upage, kpage, writable)) 
-        {
+      //if (!install_page (upage, kpage, writable)) 
+        //{
           //palloc_free_page (kpage);
-          releaseFrame (thread_current());
-          return false; 
-        }
+          //releaseFrame (thread_current());
+          //return false; 
+        //}*/
 
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -511,15 +516,17 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
    user virtual memory. */
 static bool setup_stack (void **esp, void* command) {
 	//printf("i am in setup_stack\n");	
-  uint8_t *kpage;
-  bool success = false;
-
+ // uint8_t *kpage;
+    bool success = true;
+	create_new_spte(((uint8_t *) PHYS_BASE) - PGSIZE, NONE, 0, 0, NULL, true);
   //kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-  kpage = getFrame (thread_current());
-  if (kpage != NULL) 
-    {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success){
+  //replace kpage code with adding spte for phys_base-pgsize
+ // kpage = getFrame (thread_current());
+  //if (kpage != NULL) 
+   // {
+     // success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true); 	//spte points to phys_base-pgsize
+      //vaddr.h or round.h function to round vaddr to page
+     // if (success){
         *esp = PHYS_BASE;
         char* save_ptr;
         char* token;
@@ -577,11 +584,11 @@ static bool setup_stack (void **esp, void* command) {
 	*esp=argPt;	//is this right return addrress???
 	        //hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
 
-     } 
-	else
+     //} 
+	//else
         //palloc_free_page (kpage);
-        releaseFrame (thread_current());
-    }
+       // releaseFrame (thread_current());
+   // }
   return success;
 }
 

@@ -11,6 +11,7 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "vm/frames.h"
+#include "vm/swap.h"
 /* Page allocator.  Hands out memory in page-size (or
    page-multiple) chunks.  See malloc.h for an allocator that
    hands out smaller chunks.
@@ -62,6 +63,7 @@ palloc_init (size_t user_page_limit)
 
 
 	initFrame(user_pages);
+  initSwapTable();
 }
 
 /* Obtains and returns a group of PAGE_CNT contiguous free pages.

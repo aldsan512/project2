@@ -5,6 +5,7 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "userprog/syscall.h"
+#include "vm/page.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -142,9 +143,22 @@ page_fault (struct intr_frame *f)
   /* Turn interrupts back on (they were only off so that we could
      be assured of reading CR2 before it changed). */
   intr_enable ();
-  if(!valid_pointer(fault_addr, f)){
-	  exit(-1);
-  }
+  
+  struct thread* t = thread_current();
+	if(fault_addr == NULL){
+		f->eax = -1;
+		exit(-1);
+	} else if(!is_user_vaddr(fault_addr)){
+		f->eax = -1;
+		exit(-1);
+	} else if (pagedir_get_page(t->pagedir, fault_addr) == NULL){
+		//f->eax = -1;
+		//return false;
+		load_page(fault_addr);
+	}
+  //if(!valid_pointer(fault_addr, f)){
+	//  exit(-1);
+  //}
 	  /* Count page faults. */
 	  page_fault_cnt++;
 

@@ -13,6 +13,6 @@ typedef struct{
 void initFrame(size_t numFrames);
 void* getFrame(struct spte* owner);
 bool releaseFrame(struct spte* owner);
-void* evictFrame();
+void* evictFrame(struct spte* owner);
 #endif /* vm/frames.h */
 

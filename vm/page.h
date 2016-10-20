@@ -2,10 +2,24 @@
 #define VM_PAGES_H
 #include <stdlib.h>
 #include <hash.h>
+
+typedef enum {
+	EMPTY, 
+	DISK,
+	SWAP,
+	MEM
+} location ;
+
 struct spte {
-	bool disk;
-	bool swap;
-	bool memory; 	//need?
+	location loc;	//need?
+	int swapLoc;	//AS i think loc and swapLoc are needed idk why we need the 4 data types below
+	 int read_bytes;
+     int zero_bytes;
+     bool writeable;
+     struct file* file;
+	
+	//bytes read, etc. for load segment
+	//swap index???
 	
 	struct thread* t;
 	
@@ -13,6 +27,14 @@ struct spte {
 	
 	struct hash_elem elem;	
 };
+
+void spt_init(struct thread* t);
+void spt_destroy(struct thread* t);
+struct spte* getSPTE(void* vadrr);
+void create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable );
+void load_page(void* vaddr);
+
+
 
 
 #endif //VM_PAGES_H
