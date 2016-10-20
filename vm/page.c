@@ -4,6 +4,10 @@
 #include <hash.h>
 #include "threads/vaddr.h"
 #include "userprog/process.h"
+#include "vm/swap.h"
+#include <string.h>
+#include "threads/malloc.h"
+#include "filesys/file.h"
 
 int STACK_SIZE = 1<<23;
 
@@ -46,18 +50,23 @@ void spt_destroy(struct thread* t){
 	hash_destroy(&t->spt, page_action_func);
 }
 
-struct spte* getSPTE(void* vadrr){
+struct spte* getSPTE(void* vaddr){
 	//lookup vaddr in spt hash table
 	//round dowm vaddr
 	//create fake spte with this vaddr
 	//do hash_entry with fake spte
-	
-	
+	struct thread* t = thread_current();
+	void* vaddress = pg_round_down(vaddr);
+	struct spte* temp = (struct spte*) malloc(sizeof(struct spte));
+	temp->vaddr = vaddress;
+	struct hash_elem* e = hash_find(&t->spt, &temp->elem);
+	return hash_entry(e, struct spte, elem);
 }
 
 //call in load_segment and setup_stack
 //add parameters for every spte member
 struct spte* create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable ){
+	//round vaddr down first???
 	struct spte* new_spte = (struct spte*) malloc(sizeof(struct spte));
 	struct thread* t = thread_current();
 	new_spte->t = t;
@@ -76,6 +85,7 @@ bool load_page(void* vaddress, void* esp){
 	void* vaddr = pg_round_down(vaddress); 	//header???
 	struct spte* s_pte = getSPTE(vaddr);
 	void* kpage = getFrame(s_pte);
+	printf("Loading page\n");
 	if (kpage == NULL){
         return false;
 	}

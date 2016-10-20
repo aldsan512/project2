@@ -157,6 +157,7 @@ page_fault (struct intr_frame *f)
 		//f->eax = -1;
 		//return false;
 		void* esp = f->esp; 	//if user, not if kernel???
+		//void* esp = (void*) thread_current()->stack; 	//???
 		if(!load_page(fault_addr, esp)){
 			f->eax = -1;
 			exit(-1); 	//can't load page
