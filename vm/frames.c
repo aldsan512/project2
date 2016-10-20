@@ -14,8 +14,7 @@
 static FrameEntry** frameTable;
 static int numFrames;
 static struct lock* myLock;
-void initFrame(size_t numF){	//shouldn't these be palloc_get_page(PAL_USER | PAL_ZERO)'s ???? and not malloc 
-								//malloc calls palloc_get_page(0) which is kernel space, so this won't work
+void initFrame(size_t numF){	
 	lock_init(myLock);								
 	numFrames=numF-1;
 	frameTable=(FrameEntry**)malloc(sizeof(FrameEntry*)*numFrames);
@@ -30,7 +29,7 @@ void initFrame(size_t numF){	//shouldn't these be palloc_get_page(PAL_USER | PAL
 void* getFrame(struct spte* owner){
 	lock_acquire(myLock);
 	for(int i=0;i<numFrames;i++){
-		if(frameTable[i]->pted==NULL){
+		if(frameTable[i]->pte==NULL){
 			frameTable[i]->pte=owner;
 			owner->loc=MEM;
 			return frameTable[i]->framePT;
@@ -59,7 +58,7 @@ void* evictFrame(struct spte* owner){
 		if(i==numFrames){
 			//roll over//
 			i=0;
-			if(pagedir_is_dirty(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr)){
+			if(pagedir_is_dirty(frameTable[i]->pte->t->pagedir,frameTable[i]->pte->vaddr)){
 				swapFrame(frameTable[i]->pte, frameTable[i],owner);	
 			}
 			else{
@@ -69,10 +68,10 @@ void* evictFrame(struct spte* owner){
 		}
 		if(pagedir_is_accessed(frameTable[i]->pte->t->pagedir,frameTable[i]->pte->vaddr)){
 			//if it has been accessed set accessed to 0
-			pagedir_set_accessed(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr,0);
+			pagedir_set_accessed(frameTable[i]->pte->t->pagedir,frameTable[i]->pte->vaddr,0);
 		}
 		//page has been accessed
-		else if( pagedir_is_dirty(frameTable[i]->pte->t->pagedir,frameTable[i]->pt->vaddr)){
+		else if( pagedir_is_dirty(frameTable[i]->pte->t->pagedir,frameTable[i]->pte->vaddr)){
 				//page is dirty need to put it in swap table
 				swapFrame(frameTable[i]->pte, frameTable[i],owner);					
 		}

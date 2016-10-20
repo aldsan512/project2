@@ -6,6 +6,8 @@
 #include "threads/thread.h"
 #include "userprog/syscall.h"
 #include "vm/page.h"
+#include "userprog/pagedir.h"
+#include "threads/vaddr.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -154,7 +156,11 @@ page_fault (struct intr_frame *f)
 	} else if (pagedir_get_page(t->pagedir, fault_addr) == NULL){
 		//f->eax = -1;
 		//return false;
-		load_page(fault_addr);
+		void* esp = f->esp; 	//if user, not if kernel???
+		if(!load_page(fault_addr, esp)){
+			f->eax = -1;
+			exit(-1); 	//can't load page
+		}
 	}
   //if(!valid_pointer(fault_addr, f)){
 	//  exit(-1);

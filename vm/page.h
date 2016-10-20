@@ -13,8 +13,8 @@ typedef enum {
 struct spte {
 	location loc;	//need?
 	int swapLoc;	//AS i think loc and swapLoc are needed idk why we need the 4 data types below
-	 int read_bytes;
-     int zero_bytes;
+	 int page_read_bytes;
+     int page_zero_bytes;
      bool writeable;
      struct file* file;
 	
@@ -31,8 +31,8 @@ struct spte {
 void spt_init(struct thread* t);
 void spt_destroy(struct thread* t);
 struct spte* getSPTE(void* vadrr);
-void create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable );
-void load_page(void* vaddr);
+struct spte* create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable );
+bool load_page(void* vaddr, void* esp);
 
 
 

@@ -1,6 +1,7 @@
 #include "vm/swap.h"
 #include "devices/block.h"
 #include "vm/frames.h"
+#include "threads/vaddr.h"
 
 //store_to_swap takes address of frame
 //should return which swap index it used
@@ -12,6 +13,8 @@
 swapTE* swapTable;
 int numSwapEntries;
 struct block* swapArea;
+//frame entry has hook to spte, don't need to pass
+//should only pass one spte, there is no eviction in swap, if full it kernel panics
 void* swapFrame(struct spte* victim,FrameEntry* frameEntry,struct spte* newGuy){
 	for(int i=0;i<numSwapEntries; i++){
 		//put the victim here
@@ -36,22 +39,25 @@ void* swapFrame(struct spte* victim,FrameEntry* frameEntry,struct spte* newGuy){
 	}
 	//kernel panic all slots are taken
 }
-void* retrieveFromSwap(struct spte* retrieved,FrameEntry* frameEntry){
-	if(spte->loc!=SWAP){return NULL;}
-		block_sector_t sector=spte->swapLoc*8;
-		char* buffer=(char*)frameEntry->framePT;
-		for(int i=0;i<8;i++){
-			block_read(swapArea,sector,buffer);
-			buffer=buffer+512;
-			sector++;
-		}
-		swapTable[spte->swapLoc].isOccupied=false;
-
+bool retrieveFromSwap(struct spte* retrieved, void* framePT){
+	if(retrieved->loc!=SWAP){
+		return false;
+	}
+	block_sector_t sector=retrieved->swapLoc*8;
+	char* buffer=(char*)framePT;
+	for(int i=0;i<8;i++){
+		block_write(swapArea,sector,buffer);
+		buffer=buffer+512;
+		sector++;
+	}
+	swapTable[retrieved->swapLoc].isOccupied=false;
+	retrieved->loc=MEM;
+	return true;
 }
 void initSwapTable(void){
 	swapArea=block_get_role(BLOCK_SWAP);
 	int numSwapEntries=block_size(swapArea)/8;
-	swapTable=malloc(size_of(swapTE)*numSwapEntries);
+	swapTable=malloc(sizeof(swapTE)*numSwapEntries);
 	for(int i=0;i<numSwapEntries;i++){
 		swapTable[i].isOccupied=false;
 	}

@@ -2,6 +2,10 @@
 #include "vm/frames.h"
 #include "threads/thread.h"
 #include <hash.h>
+#include "threads/vaddr.h"
+#include "userprog/process.h"
+
+int STACK_SIZE = 1<<23;
 
 /* Computes and returns the hash value for hash element E, given
    auxiliary data AUX. */
@@ -20,10 +24,10 @@ bool page_less_func (const struct hash_elem *a,
 	struct spte* sup_pte_a = hash_entry(a, struct spte, elem);
 	struct spte* sup_pte_b = hash_entry(b, struct spte, elem);
 
-	int a = (int) sup_pte_a->vaddr;
-	int b = (int) sup_pte_b->vaddr;	
+	int a_val = (int) sup_pte_a->vaddr;
+	int b_val = (int) sup_pte_b->vaddr;	
 	
-	return a < b;	 						 
+	return a_val < b_val;	 						 
 }
 
 /* Performs some operation on hash element E, given auxiliary
@@ -34,48 +38,71 @@ void page_action_func (struct hash_elem *e, void *aux){
 }
 
 void spt_init(struct thread* t){
-	hash_init(&t->hash, page_hash_func, page_less_func, NULL);
+	hash_init(&t->spt, page_hash_func, page_less_func, NULL);
 }
 
 //on thread destructino call this to destroy hash table
 void spt_destroy(struct thread* t){
-	hash_destroy(&t->hash, page_action_func);
+	hash_destroy(&t->spt, page_action_func);
 }
 
 struct spte* getSPTE(void* vadrr){
 	//lookup vaddr in spt hash table
+	//round dowm vaddr
+	//create fake spte with this vaddr
+	//do hash_entry with fake spte
 	
 	
 }
 
 //call in load_segment and setup_stack
 //add parameters for every spte member
-void create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable ){
-	struct spte* new_spte = (sttruct spte*) malloc(sizeof(struct spte));
-	struct thread* t = current_thread();
-	new_spte->thread = t;
+struct spte* create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable ){
+	struct spte* new_spte = (struct spte*) malloc(sizeof(struct spte));
+	struct thread* t = thread_current();
+	new_spte->t = t;
 	new_spte->loc = loc;
-	new_spte->read_bytes = read_bytes;
-	new_spte->zero_bytes = zero_bytes;
+	new_spte->page_read_bytes = read_bytes;
+	new_spte->page_zero_bytes = zero_bytes;
 	new_spte->file = file;
 	new_spte->writeable = writeable;
 	hash_insert(&t->spt, &new_spte->elem);
+	return new_spte;
 }
 
 //called from page fault handler
-bool load_page(void* vaddr){
+bool load_page(void* vaddress, void* esp){
 	//round down vaddr first
+	void* vaddr = pg_round_down(vaddress); 	//header???
 	struct spte* s_pte = getSPTE(vaddr);
 	void* kpage = getFrame(s_pte);
-	if(s_pte == NULL){
-		//check if in stack space
+	if (kpage == NULL){
+        return false;
+	}
+	if(s_pte == NULL  || s_pte->loc == EMPTY){
+		if(vaddress >= esp + 32 && vaddress <= PHYS_BASE + STACK_SIZE){
+			if(s_pte == NULL){
+				s_pte = create_new_spte(vaddress, MEM, 0, 0, NULL, true);
+			}
+			memset (kpage, 0, PGSIZE);
+			if (!install_page (s_pte->vaddr, kpage, s_pte->writeable)) 
+				{
+					releaseFrame(s_pte);
+					return false;
+				}
+			s_pte->loc = MEM;
+		} else {
+			releaseFrame(s_pte);
+			return false;
+		}
+		//check if vaddress in stack space
+		//if so install page install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true) except with vaddr
+		//else return false and release frame
+		
 	}
 	//load page
-	
-	if(spte->loc == DISK){
-      if (kpage == NULL)
-        return false;
-
+	if(s_pte->loc == DISK){
+     
       /* Load this page. */
       if (file_read (s_pte->file, kpage, s_pte->page_read_bytes) != (int) s_pte->page_read_bytes)
         {
@@ -85,17 +112,22 @@ bool load_page(void* vaddr){
       memset (kpage + s_pte->page_read_bytes, 0, s_pte->page_zero_bytes);
 
       /* Add the page to the process's address space. */
-      if (!install_page (s_pte->vaddr, kpage, s_pte->writable)) 
+      if (!install_page (s_pte->vaddr, kpage, s_pte->writeable)) 
         {
           releaseFrame(s_pte);
-		  return false
-        }*/
-		//load page from disk to frame
-	} else if (spte->loc == SWAP){
-		
-		//load page from swap to frame
-	} else if (spte->loc == STACK) {
-		   
+		  return false;
+        }
+	} else if (s_pte->loc == SWAP){
+		if(retrieveFromSwap(s_pte, kpage)) {
+			releaseFrame(s_pte);
+			return false;
+		}
+		if(!install_page(s_pte->vaddr, kpage, s_pte->writeable)){
+			releaseFrame(s_pte);
+			return false;
+		}
+		//memset???
+		//install page???
 	}
 }
 
