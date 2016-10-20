@@ -2,7 +2,8 @@
 #include "devices/block.h"
 #include "vm/frames.h"
 #include "threads/vaddr.h"
-
+#include "threads/malloc.h"
+#include <string.h>
 //store_to_swap takes address of frame
 //should return which swap index it used
 //it should copy over the data in the frame to each block (8 blocks per swap index i think) to the swap index
