@@ -51,13 +51,18 @@ struct spte* getSPTE(void* vadrr){
 	//round dowm vaddr
 	//create fake spte with this vaddr
 	//do hash_entry with fake spte
-	
-	
+	struct thread* t = thread_current();
+	void* vaddress = pg_round_down(vaddr);
+	struct spte* temp = (struct spte*) malloc(sizeof(struct spte));
+	temp->vaddr = vaddress;
+	struct hash_elem e = hash_find(t->hash, temp->elem);
+	return hash_entry(e, struct spte, elem);
 }
 
 //call in load_segment and setup_stack
 //add parameters for every spte member
 struct spte* create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable ){
+	//round vaddr down first???
 	struct spte* new_spte = (struct spte*) malloc(sizeof(struct spte));
 	struct thread* t = thread_current();
 	new_spte->t = t;
