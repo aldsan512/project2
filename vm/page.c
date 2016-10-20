@@ -50,7 +50,7 @@ void spt_destroy(struct thread* t){
 	hash_destroy(&t->spt, page_action_func);
 }
 
-struct spte* getSPTE(void* vadrr){
+struct spte* getSPTE(void* vaddr){
 	//lookup vaddr in spt hash table
 	//round dowm vaddr
 	//create fake spte with this vaddr
@@ -59,7 +59,7 @@ struct spte* getSPTE(void* vadrr){
 	void* vaddress = pg_round_down(vaddr);
 	struct spte* temp = (struct spte*) malloc(sizeof(struct spte));
 	temp->vaddr = vaddress;
-	struct hash_elem e = hash_find(t->hash, temp->elem);
+	struct hash_elem* e = hash_find(&t->spt, &temp->elem);
 	return hash_entry(e, struct spte, elem);
 }
 
