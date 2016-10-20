@@ -4,6 +4,10 @@
 #include <hash.h>
 #include "threads/vaddr.h"
 #include "userprog/process.h"
+#include "vm/swap.h"
+#include <string.h>
+#include "threads/malloc.h"
+#include "filesys/file.h"
 
 int STACK_SIZE = 1<<23;
 

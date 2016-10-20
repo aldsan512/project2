@@ -22,6 +22,7 @@
 #include "threads/palloc.h"
 #include "threads/pte.h"
 #include "threads/thread.h"
+#include "vm/swap.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #include "userprog/exception.h"
@@ -95,9 +96,13 @@ main (void)
           init_ram_pages * PGSIZE / 1024);
 
   /* Initialize memory system. */
+
   palloc_init (user_page_limit);
   malloc_init ();
   paging_init ();
+  //AS initialize the swaptable
+    initSwapTable();
+
 
   /* Segmentation. */
 #ifdef USERPROG
