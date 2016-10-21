@@ -38,7 +38,10 @@ bool page_less_func (const struct hash_elem *a,
    data AUX. */
 void page_action_func (struct hash_elem *e, void *aux){
 	struct spte* sup_pte = hash_entry(e, struct spte, elem);
-	releaseFrame(sup_pte); 
+	if(sup_pte->loc == MEM){
+		pagedir_clear_page(thread_current()->pagedir, sup_pte->vaddr);
+		releaseFrame(sup_pte); 
+	}
 }
 
 void spt_init(struct thread* t){
