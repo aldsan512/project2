@@ -12,6 +12,7 @@
 #include "devices/input.h"
 #include "devices/shutdown.h"
 #include <string.h>
+#include "userprog/syscall.h"
 #define EOF -1
 
 static struct lock l;

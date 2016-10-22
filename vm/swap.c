@@ -20,7 +20,7 @@ void* swapFrame(struct spte* victim,FrameEntry* frameEntry,struct spte* newGuy){
 	for(int i=0;i<numSwapEntries; i++){
 		//put the victim here
 		if(swapTable[i].isOccupied==false){
-			//copy data in phys memory onto the swap area. one page==8 swap sectors
+			//copy data in phys memory onto the swap area. one page=8 swap sectors
 			swapTable[i].isOccupied=true;
 			block_sector_t sector=i*8;
 			char* buffer=(char*)frameEntry->framePT;
@@ -36,9 +36,8 @@ void* swapFrame(struct spte* victim,FrameEntry* frameEntry,struct spte* newGuy){
 			newGuy->loc=MEM;
 			return frameEntry->framePT;
 		}
-			//swap slot taken up
 	}
-	//kernel panic all slots are taken
+	PANIC ("Frame could not be evicted because swap is full!");
 }
 bool retrieveFromSwap(struct spte* retrieved, void* framePT){
 	if(retrieved->loc!=SWAP){
@@ -57,7 +56,7 @@ bool retrieveFromSwap(struct spte* retrieved, void* framePT){
 }
 void initSwapTable(void){
 	swapArea=block_get_role(BLOCK_SWAP);
-	int numSwapEntries=block_size(swapArea)/8;
+	numSwapEntries=block_size(swapArea)/8;
 	swapTable=malloc(sizeof(swapTE)*numSwapEntries);
 	for(int i=0;i<numSwapEntries;i++){
 		swapTable[i].isOccupied=false;

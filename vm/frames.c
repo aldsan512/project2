@@ -50,6 +50,7 @@ bool releaseFrame(struct spte* owner){
 		if(frameTable[i]->pte->vaddr==owner->vaddr){
 			frameTable[i]->pte=NULL;
 			memset (frameTable[i]->framePT,0,PGSIZE);
+			//if install page was called do clear page
 			//lock_release(myLock);
 			return true;
 		}
@@ -81,7 +82,10 @@ void* evictFrame(struct spte* owner){
 		}
 		else{
 				//frame is code just evict and read from disk later	
+                //page_dir_clear_page on old page that owned it 
+                //install_page
 				frameTable[i]->pte=owner;
+				memset (frameTable[i]->framePT,0,PGSIZE);
 				return frameTable[i]->framePT;
 		}
  
