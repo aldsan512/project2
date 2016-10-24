@@ -25,7 +25,7 @@ struct spte {
 	
 	void* vaddr;
 	
-	struct hash_elem elem;	
+	struct list_elem elem;	
 };
 
 void spt_init(struct thread* t);

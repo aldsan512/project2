@@ -13,44 +13,52 @@ int STACK_SIZE = 1<<23;
 
 /* Computes and returns the hash value for hash element E, given
    auxiliary data AUX. */
-unsigned page_hash_func (const struct hash_elem *e, void *aux){
-	struct spte* sup_pte = hash_entry(e, struct spte, elem);
+//unsigned page_hash_func (const struct hash_elem *e, void *aux){
+	//struct spte* sup_pte = hash_entry(e, struct spte, elem);
 	
-	return hash_int((int) sup_pte->vaddr);
-}
+	//return hash_int((int) sup_pte->vaddr);
+//}
 
 /* Compares the value of two hash elements A and B, given
    auxiliary data AUX.  Returns true if A is less than B, or
    false if A is greater than or equal to B. */
-bool page_less_func (const struct hash_elem *a,
-                             const struct hash_elem *b,
-                             void *aux){
-	struct spte* sup_pte_a = hash_entry(a, struct spte, elem);
-	struct spte* sup_pte_b = hash_entry(b, struct spte, elem);
+//bool page_less_func (const struct hash_elem *a,
+                             //const struct hash_elem *b,
+                             //void *aux){
+	//struct spte* sup_pte_a = hash_entry(a, struct spte, elem);
+	//struct spte* sup_pte_b = hash_entry(b, struct spte, elem);
 
-	int a_val = (int) sup_pte_a->vaddr;
-	int b_val = (int) sup_pte_b->vaddr;	
+	//int a_val = (int) sup_pte_a->vaddr;
+	//int b_val = (int) sup_pte_b->vaddr;	
 	
-	return a_val < b_val;	 						 
-}
+	//return a_val < b_val;	 						 
+//}
 
 /* Performs some operation on hash element E, given auxiliary
    data AUX. */
-void page_action_func (struct hash_elem *e, void *aux){
-	struct spte* sup_pte = hash_entry(e, struct spte, elem);
-	if(sup_pte->loc == MEM){
-		pagedir_clear_page(thread_current()->pagedir, sup_pte->vaddr);
-		releaseFrame(sup_pte); 
-	}
-}
+//void page_action_func (struct hash_elem *e, void *aux){
+	//struct spte* sup_pte = hash_entry(e, struct spte, elem);
+	//if(sup_pte->loc == MEM){
+		//pagedir_clear_page(thread_current()->pagedir, sup_pte->vaddr);
+		//releaseFrame(sup_pte); 
+	//}
+//}
 
 void spt_init(struct thread* t){
-	hash_init(&t->spt, page_hash_func, page_less_func, NULL);
+	//hash_init(&t->spt, page_hash_func, page_less_func, NULL);
+	list_init(&t->spt);
 }
 
 //on thread destructino call this to destroy hash table
 void spt_destroy(struct thread* t){
-	hash_destroy(&t->spt, page_action_func);
+	//hash_destroy(&t->spt, page_action_func);
+	struct list_elem* node = list_head(&t->spt);
+	while(node != NULL){
+		struct spte* s_pte = list_entry(node, struct spte, elem);
+		pagedir_clear_page(t->pagedir, s_pte->vaddr);
+		releaseFrame(s_pte);
+		node = list_next(node);
+	}
 }
 
 struct spte* getSPTE(void* vaddr){
@@ -60,10 +68,15 @@ struct spte* getSPTE(void* vaddr){
 	//do hash_entry with fake spte
 	struct thread* t = thread_current();
 	void* vaddress = pg_round_down(vaddr);
-	struct spte* temp = (struct spte*) malloc(sizeof(struct spte));
-	temp->vaddr = vaddress;
-	struct hash_elem* e = hash_find(&t->spt, &temp->elem);
-	return hash_entry(e, struct spte, elem);
+	struct list_elem* node = list_head(&t->spt);
+	while(node != NULL){
+		struct spte* s_pte = list_entry(node, struct spte, elem);
+		if(s_pte->vaddr == vaddress){
+			return s_pte;
+		}
+		node = list_next(node);
+	}
+	return NULL;
 }
 
 //call in load_segment and setup_stack
@@ -78,7 +91,8 @@ struct spte* create_new_spte(void* vaddr, location loc, int read_bytes, int zero
 	new_spte->page_zero_bytes = zero_bytes;
 	new_spte->file = file;
 	new_spte->writeable = writeable;
-	hash_insert(&t->spt, &new_spte->elem);
+	//hash_insert(&t->spt, &new_spte->elem);
+	list_push_back(&t->spt, &new_spte->elem);
 	return new_spte;
 }
 
@@ -88,7 +102,7 @@ bool load_page(void* vaddress, void* esp){
 	void* vaddr = pg_round_down(vaddress); 	//header???
 	struct spte* s_pte = getSPTE(vaddr);
 	void* kpage = getFrame(s_pte);
-	printf("Loading page\n");
+	printf("Loading page\n"); 	//remove when done
 	if (kpage == NULL){
         return false;
 	}
@@ -140,7 +154,6 @@ bool load_page(void* vaddress, void* esp){
 			return false;
 		}
 		//memset???
-		//install page???
 	}
 }
 
