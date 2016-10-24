@@ -56,8 +56,12 @@ bool retrieveFromSwap(struct spte* retrieved, void* framePT){
 }
 void initSwapTable(void){
 	swapArea=block_get_role(BLOCK_SWAP);
-	numSwapEntries=block_size(swapArea)/8;
-	swapTable=malloc(sizeof(swapTE)*numSwapEntries);
+	if(!swapArea){
+		return; 	//failure
+	}
+	numSwapEntries=block_size(swapArea)/ SECTORS_PER_PAGE;
+	//problem above ???
+	swapTable=(swapTE*) malloc(sizeof(swapTE)*numSwapEntries);
 	for(int i=0;i<numSwapEntries;i++){
 		swapTable[i].isOccupied=false;
 	}

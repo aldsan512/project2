@@ -3,6 +3,9 @@
 #include "devices/block.h"
 #include "vm/page.h"
 #include "vm/frames.h"
+
+#define SECTORS_PER_PAGE (PGSIZE / BLOCK_SECTOR_SIZE)
+
 typedef struct{
 	bool isOccupied;
 	struct block_sector_t* swapBlock;

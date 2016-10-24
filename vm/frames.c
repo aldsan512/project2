@@ -16,7 +16,7 @@ static int numFrames;
 //static struct lock* myLock;
 void initFrame(size_t numF){	
 	//lock_init(myLock);								
-	//numFrames=numF-1; 	//put back to -1 later
+	numFrames=numF-1; 	//put back to -1 later
 	frameTable=(FrameEntry*)malloc(sizeof(FrameEntry)*numFrames);
 	int i = 0;
 	void* framePT = NULL;

@@ -181,7 +181,7 @@ process_exit (void)
          directory before destroying the process's page
          directory, or our active page directory will be one
          that's been freed (and cleared). */
-      //spt_destroy(cur); //free frames, order correct???
+      spt_destroy(cur); //free frames, order correct???
       //may need to replace all this stuff with spt_destroy, or change calls in destroy
       //to use releaseFrame???
       cur->pagedir = NULL;

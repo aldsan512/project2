@@ -52,11 +52,16 @@ void spt_init(struct thread* t){
 //on thread destructino call this to destroy hash table
 void spt_destroy(struct thread* t){
 	//hash_destroy(&t->spt, page_action_func);
-	struct list_elem* node = list_head(&t->spt);
-	while(node != NULL){
+	struct list_elem* head = list_head(&t->spt);
+	struct list_elem* tail = list_tail(&t->spt);
+	
+	struct list_elem* node = list_next(head);
+	while(node != NULL && node != tail){
 		struct spte* s_pte = list_entry(node, struct spte, elem);
-		pagedir_clear_page(t->pagedir, s_pte->vaddr);
-		releaseFrame(s_pte);
+		if(s_pte != NULL && s_pte->loc == MEM){
+			releaseFrame(s_pte);
+			pagedir_clear_page(t->pagedir, s_pte->vaddr);
+		}
 		node = list_next(node);
 	}
 }
@@ -68,10 +73,13 @@ struct spte* getSPTE(void* vaddr){
 	//do hash_entry with fake spte
 	struct thread* t = thread_current();
 	void* vaddress = pg_round_down(vaddr);
-	struct list_elem* node = list_head(&t->spt);
-	while(node != NULL){
+	struct list_elem* head = list_head(&t->spt);
+	struct list_elem* tail = list_tail(&t->spt);
+	
+	struct list_elem* node = list_next(head);
+	while(node != NULL && node != tail){
 		struct spte* s_pte = list_entry(node, struct spte, elem);
-		if(s_pte->vaddr == vaddress){
+		if(s_pte != NULL && s_pte->vaddr == vaddress){
 			return s_pte;
 		}
 		node = list_next(node);
@@ -102,7 +110,7 @@ bool load_page(void* vaddress, void* esp){
 	void* vaddr = pg_round_down(vaddress); 	//header???
 	struct spte* s_pte = getSPTE(vaddr);
 	void* kpage = getFrame(s_pte);
-	printf("Loading page\n"); 	//remove when done
+	//printf("Loading page\n"); 	//remove when done
 	if (kpage == NULL){
         return false;
 	}
@@ -131,6 +139,7 @@ bool load_page(void* vaddress, void* esp){
 	if(s_pte->loc == DISK){
      
       /* Load this page. */
+      //use same filesys lock from syscall here???
       if (file_read (s_pte->file, kpage, s_pte->page_read_bytes) != (int) s_pte->page_read_bytes)
         {
          releaseFrame(s_pte);
@@ -144,15 +153,17 @@ bool load_page(void* vaddress, void* esp){
           releaseFrame(s_pte);
 		  return false;
         }
+        s_pte->loc = MEM;
 	} else if (s_pte->loc == SWAP){
-		if(retrieveFromSwap(s_pte, kpage)) {
-			releaseFrame(s_pte);
-			return false;
-		}
 		if(!install_page(s_pte->vaddr, kpage, s_pte->writeable)){
 			releaseFrame(s_pte);
 			return false;
 		}
+		if(retrieveFromSwap(s_pte, kpage)) {
+			releaseFrame(s_pte);
+			return false;
+		}
+		
 		//memset???
 	}
 }

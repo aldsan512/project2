@@ -396,11 +396,17 @@ usage (void)
 static void
 locate_block_devices (void)
 {
+	//printf("initializing filesys\n");
   locate_block_device (BLOCK_FILESYS, filesys_bdev_name);
+  // printf("initialed filesys\n");
+ // printf("initializing scratch\n");
   locate_block_device (BLOCK_SCRATCH, scratch_bdev_name);
+  // printf("initialed scratch\n");
 #ifdef VM
+//printf("initializing swap\n");
   locate_block_device (BLOCK_SWAP, swap_bdev_name);
-   //initSwapTable();
+  //printf("initialed swap\n");
+  initSwapTable();
 #endif
 }
 
