@@ -149,18 +149,24 @@ page_fault (struct intr_frame *f)
   struct thread* t = thread_current();
 	if(fault_addr == NULL){
 		f->eax = -1;
+		printf("NULL address\n");
 		exit(-1);
 	} else if(!is_user_vaddr(fault_addr)){
 		f->eax = -1;
+		printf("Not User address\n");
 		exit(-1);
 	} else if (pagedir_get_page(t->pagedir, fault_addr) == NULL){
 		//f->eax = -1;
 		//return false;
 		void* esp = f->esp; 	//if user, not if kernel???
+		//printf("Loading page\n");
 		//void* esp = (void*) thread_current()->stack; 	//???
 		if(!load_page(fault_addr, esp)){
 			f->eax = -1;
+			printf("Failed to load page\n");
 			exit(-1); 	//can't load page
+		} else {
+			return;
 		}
 	}
   //if(!valid_pointer(fault_addr, f)){
