@@ -9,7 +9,6 @@
 #include "threads/malloc.h"
 #include "filesys/file.h"
 #include "userprog/pagedir.h"
-
 int STACK_SIZE = 1<<23;
 
 /* Computes and returns the hash value for hash element E, given
@@ -91,16 +90,24 @@ struct spte* getSPTE(void* vaddr){
 //call in load_segment and setup_stack
 //add parameters for every spte member
 struct spte* create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable ){
-	//round vaddr down first???
+	void* vaddress = pg_round_down(vaddr);
+	struct spte* existing_spte = getSPTE(vaddress);
+	if(existing_spte != NULL){
+		return existing_spte;
+		
+	}
 	struct spte* new_spte = (struct spte*) malloc(sizeof(struct spte));
 	struct thread* t = thread_current();
+	
+	new_spte->vaddr = vaddress;
+	new_spte->swapLoc = -1;
 	new_spte->t = t;
 	new_spte->loc = loc;
 	new_spte->page_read_bytes = read_bytes;
 	new_spte->page_zero_bytes = zero_bytes;
 	new_spte->file = file;
 	new_spte->writeable = writeable;
-	//hash_insert(&t->spt, &new_spte->elem);
+	
 	list_push_back(&t->spt, &new_spte->elem);
 	return new_spte;
 }
@@ -110,39 +117,54 @@ bool load_page(void* vaddress, void* esp){
 	//round down vaddr first
 	void* vaddr = pg_round_down(vaddress); 	//header???
 	struct spte* s_pte = getSPTE(vaddr);
-	void* kpage = getFrame(s_pte);
-	//printf("Loading page\n"); 	//remove when done
-	if (kpage == NULL){
-        return false;
-	}
+	//if(s_pte == NULL){
+		
+		//return false;
+	//}
+	//if(s_pte->loc == MEM){
+		//printf("Adress already mapped\n");
+		//return true;
+	//}
+	
 	if(s_pte == NULL  || s_pte->loc == EMPTY){
 		if(vaddress >= esp + 32 && vaddress <= PHYS_BASE + STACK_SIZE){
 			if(s_pte == NULL){
 				s_pte = create_new_spte(vaddress, MEM, 0, 0, NULL, true);
 			}
+			void* kpage = getFrame(s_pte);
+			//printf("Loading page\n"); 	//remove when done
+			if (kpage == NULL){
+				printf("No user frames available.\n");
+				return false;
+			}
 			memset (kpage, 0, PGSIZE);
 			if (!install_page (s_pte->vaddr, kpage, s_pte->writeable)) 
 				{
+					printf("Failed to install page - stack\n");
 					releaseFrame(s_pte);
 					return false;
 				}
 			s_pte->loc = MEM;
 		} else {
+			//printf("Out of stack");
+			printf("SPTE not found\n");
 			releaseFrame(s_pte);
 			return false;
-		}
-		//check if vaddress in stack space
-		//if so install page install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true) except with vaddr
-		//else return false and release frame
-		
+		}		
 	}
 	//load page
 	if(s_pte->loc == DISK){
-     
+		void* kpage = getFrame(s_pte);
+			//printf("Loading page\n"); 	//remove when done
+			if (kpage == NULL){
+				printf("No user frames available.\n");
+				return false;
+			}
       /* Load this page. */
       //use same filesys lock from syscall here???
       if (file_read (s_pte->file, kpage, s_pte->page_read_bytes) != (int) s_pte->page_read_bytes)
         {
+		 printf("Failed to load file\n");
          releaseFrame(s_pte);
          return false; 
         }
@@ -151,21 +173,32 @@ bool load_page(void* vaddress, void* esp){
       /* Add the page to the process's address space. */
       if (!install_page (s_pte->vaddr, kpage, s_pte->writeable)) 
         {
+		  printf("Failed to install page - file\n");
           releaseFrame(s_pte);
 		  return false;
         }
         s_pte->loc = MEM;
 	} else if (s_pte->loc == SWAP){
+		//have getFrame here???
+		void* kpage = getFrame(s_pte);
+			//printf("Loading page\n"); 	//remove when done
+			if (kpage == NULL){
+				printf("No user frames available.\n");
+				return false;
+			}
 		if(!install_page(s_pte->vaddr, kpage, s_pte->writeable)){
+			printf("Failed to install page - swap\n");
 			releaseFrame(s_pte);
 			return false;
 		}
 		if(retrieveFromSwap(s_pte, kpage)) {
+			printf("Failed to retrieve from swap\n");
 			releaseFrame(s_pte);
 			return false;
 		}
 		
 		//memset???
 	}
+	return true;
 }
 

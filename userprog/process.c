@@ -168,6 +168,8 @@ process_exit (void)
 			close(i);
 		}
 	}
+	spt_destroy(cur);
+	
   	//sema_up(cur->wait_lock);
      /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -181,7 +183,7 @@ process_exit (void)
          directory before destroying the process's page
          directory, or our active page directory will be one
          that's been freed (and cleared). */
-      spt_destroy(cur); //free frames, order correct???
+       //free frames, order correct???
       //may need to replace all this stuff with spt_destroy, or change calls in destroy
       //to use releaseFrame???
       cur->pagedir = NULL;
