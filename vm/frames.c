@@ -18,14 +18,14 @@ void initFrame(size_t numF){
 	//lock_init(myLock);								
 	numFrames=numF-1; 	//put back to -1 later
 	frameTable=(FrameEntry*)malloc(sizeof(FrameEntry)*numFrames);
-	int i = 0;
-	void* framePT = NULL;
-	while(framePT = palloc_get_page(PAL_USER | PAL_ZERO) != NULL){
-	//for(int i = 0; i < numFrames; i++){
+//	int i = 0;
+//	void* framePT = NULL;
+//	while(framePT = palloc_get_page(PAL_USER | PAL_ZERO) != NULL){
+	for(int i = 0; i < numFrames; i++){
 		//PROBLEM BELOW??? with malloc
 		//frameTable[i]=(FrameEntry*)malloc(sizeof(FrameEntry));
 		frameTable[i].framePT=palloc_get_page(PAL_USER | PAL_ZERO);
-		//frameTable[i]->isModified=false;
+		frameTable[i].isModified=false;
 		frameTable[i].pte=NULL;
 		i++;
 	}

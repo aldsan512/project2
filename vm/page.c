@@ -8,6 +8,7 @@
 #include <string.h>
 #include "threads/malloc.h"
 #include "filesys/file.h"
+#include "userprog/pagedir.h"
 
 int STACK_SIZE = 1<<23;
 
