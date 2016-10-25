@@ -30,7 +30,7 @@ void* getFrame(struct spte* owner){
 	for(int i=0;i<numFrames;i++){
 		if(frameTable[i].pte==NULL){
 			frameTable[i].pte=owner;
-			owner->loc=MEM;
+			//owner->loc=MEM;
 			//lock_release(myLock);
 			return frameTable[i].framePT;
 		}

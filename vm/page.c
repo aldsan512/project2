@@ -182,6 +182,7 @@ bool load_page(void* vaddress, void* esp){
 		  return false;
         }
         s_pte->loc = MEM;
+        printf("Loaded from disk\n");
 	} else if (s_pte->loc == SWAP){
 		printf("Loading from swap\n");
 		if(!install_page(s_pte->vaddr, kpage, s_pte->writeable)){
@@ -194,6 +195,7 @@ bool load_page(void* vaddress, void* esp){
 			releaseFrame(s_pte);
 			return false;
 		}
+		printf("Loaded from swap\n");
 		
 		//memset???
 	}
