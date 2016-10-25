@@ -347,7 +347,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_OPEN:               /* Open a file. */
 			file = (char*) *sp;
-			if(!valid_pointer(sp, f)){ 
+			if(!valid_pointer(file, f)){ 
 				exit(-1);
 				return; 
 			}

@@ -160,15 +160,15 @@ page_fault (struct intr_frame *f)
 	  
 	  struct thread* t = thread_current();
 	if(fault_addr == NULL){
-		//f->eax = -1;
+		f->eax = -1;
 		//printf("NULL address\n");
-		//exit(-1);
-		kill(f);
+		exit(-1);
+		//kill(f);
 	} else if(!is_user_vaddr(fault_addr)){
-		//f->eax = -1;
+		f->eax = -1;
 		//printf("Not User address\n");
-		kill(f);
-		//exit(-1);
+		//kill(f);
+		exit(-1);
 	} else if (pagedir_get_page(t->pagedir, fault_addr) == NULL){
 		//f->eax = -1;
 		//return false;
@@ -178,26 +178,28 @@ page_fault (struct intr_frame *f)
 		}
 		//printf("Loading page\n");
 		//void* esp = (void*) thread_current()->stack; 	//???
-		if(!load_page(fault_addr, esp)) {
+		if(load_page(fault_addr, esp)) {
+			return;
 			//f->eax = -1;
 			//printf("Failed to load page\n");
 			//exit(-1); 	//can't load page
 			
-			printf ("Page fault at %p: %s error %s page in %s context.\n",
-			  fault_addr,
-			  not_present ? "not present" : "rights violation",
-			  write ? "writing" : "reading",
-			  user ? "user" : "kernel");
-			kill (f);
-		} else {
-			return;
+			
+		} else{
+			f->eax = -1;
+			exit(-1);
 		}
 	}
 
 	  /* To implement virtual memory, delete the rest of the function
 		 body, and replace it with code that brings in the page to
 		 which fault_addr refers. */
-	  
+	  printf ("Page fault at %p: %s error %s page in %s context.\n",
+			  fault_addr,
+			  not_present ? "not present" : "rights violation",
+			  write ? "writing" : "reading",
+			  user ? "user" : "kernel");
+		kill (f);
 	
 }
 
