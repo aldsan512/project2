@@ -13,9 +13,9 @@
 #include "threads/synch.h"
 static FrameEntry* frameTable;
 static int numFrames;
-//static struct lock* myLock;
+static struct lock myLock;
 void initFrame(size_t numF){	
-	//lock_init(myLock);								
+	lock_init(&myLock);								
 	numFrames=numF-1; 	//put back to -1 later
 	frameTable=(FrameEntry*)malloc(sizeof(FrameEntry)*numFrames);
 	for(int i = 0; i < numFrames; i++){
@@ -26,32 +26,32 @@ void initFrame(size_t numF){
 	
 }
 void* getFrame(struct spte* owner){
-	//lock_acquire(myLock);
+	lock_acquire(&myLock);
 	for(int i=0;i<numFrames;i++){
 		if(frameTable[i].pte==NULL){
 			frameTable[i].pte=owner;
 			//owner->loc=MEM;
-			//lock_release(myLock);
+			lock_release(&myLock);
 			return frameTable[i].framePT;
 		}
 	}
 	//if above fails, frame evict and return the replaced frame
 	void* result=evictFrame(owner);
-	//lock_release(myLock);
+	lock_release(&myLock);
 	return result;
 }
 bool releaseFrame(struct spte* owner){
-	//lock_acquire(myLock);
+	lock_acquire(&myLock);
 	for(int i=0;i<numFrames;i++){
-		if(frameTable[i].pte->vaddr==owner->vaddr){
+		if(frameTable[i].pte==owner){
 			frameTable[i].pte=NULL;
 			memset (frameTable[i].framePT,0,PGSIZE);
 			//if install page was called do clear page
-			//lock_release(myLock);
+			lock_release(&myLock);
 			return true;
 		}
 	}
-	//lock_release(myLock);
+	lock_release(&myLock);
 	return false;	
 }
 void* evictFrame(struct spte* owner){

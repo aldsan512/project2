@@ -4,6 +4,7 @@
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
 #include <string.h>
+#include "threads/synch.h"
 //store_to_swap takes address of frame
 //should return which swap index it used
 //it should copy over the data in the frame to each block (8 blocks per swap index i think) to the swap index
@@ -11,12 +12,15 @@
 
 //remove_from_swap takes swap index and address of frame
 //it should copy over the blocks in the swap index to the frame
-swapTE* swapTable;
-int numSwapEntries;
-struct block* swapArea;
+static swapTE* swapTable;
+static int numSwapEntries;
+static struct block* swapArea;
+static struct lock lock;
+
 //frame entry has hook to spte, don't need to pass
 //should only pass one spte, there is no eviction in swap, if full it kernel panics
 void* swapFrame(struct spte* victim,FrameEntry* frameEntry,struct spte* newGuy){
+	lock_acquire(&lock);
 	for(int i=0;i<numSwapEntries; i++){
 		//put the victim here
 		if(swapTable[i].isOccupied==false){
@@ -34,13 +38,18 @@ void* swapFrame(struct spte* victim,FrameEntry* frameEntry,struct spte* newGuy){
 			memset (frameEntry->framePT,0,PGSIZE);
 			frameEntry->pte=newGuy;
 			newGuy->loc=MEM;
-			return frameEntry->framePT;
+			void* result = frameEntry->framePT;
+			lock_release(&lock);
+			return result;
 		}
 	}
+	lock_release(&lock);
 	PANIC ("Frame could not be evicted because swap is full!");
 }
 bool retrieveFromSwap(struct spte* retrieved, void* framePT){
+	lock_acquire(&lock);
 	if(retrieved->loc!=SWAP){
+		lock_release(&lock);
 		return false;
 	}
 	block_sector_t sector=retrieved->swapLoc*8;
@@ -51,10 +60,12 @@ bool retrieveFromSwap(struct spte* retrieved, void* framePT){
 		sector++;
 	}
 	swapTable[retrieved->swapLoc].isOccupied=false;
-	retrieved->loc=MEM;
+	retrieved->loc=MEM;\
+	lock_release(&lock);
 	return true;
 }
 void initSwapTable(void){
+	lock_init(&lock);
 	swapArea=block_get_role(BLOCK_SWAP);
 	if(!swapArea){
 		return; 	//failure

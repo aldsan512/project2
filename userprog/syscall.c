@@ -280,9 +280,10 @@ syscall_handler (struct intr_frame *f) {
 	void *buffer;
 	tid_t pid;
 	
-	struct thread* thread = thread_current();
+	struct thread* t = thread_current();
 
 	uint32_t* sp = f->esp;
+	t->stack = (uint8_t*)sp;
 	bool failure = false;
 	if(!valid_pointer(sp, f)){
 		exit(-1);
@@ -358,7 +359,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_READ:            /* Read from a file. */
 			fd = *sp;
-			if(fd < 0 || fd > thread->fileTableSz){
+			if(fd < 0 || fd > t->fileTableSz){
 				f->eax = -1;
 				return;
 			}
@@ -375,7 +376,7 @@ syscall_handler (struct intr_frame *f) {
 		case SYS_WRITE:             /* Write to a file. */
 			fd = *sp;
 		 //printf("write syscall\n");
-			if(fd < 0 || fd > thread->fileTableSz){
+			if(fd < 0 || fd > t->fileTableSz){
 				f->eax = -1;
 				return;
 			}
@@ -391,7 +392,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_SEEK:              /* Change position in a file. */
 			fd = *sp;
-			if(fd < 0 || fd > thread->fileTableSz){
+			if(fd < 0 || fd > t->fileTableSz){
 				f->eax = -1;
 				return;
 			}	
@@ -401,7 +402,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_TELL:               /* Report current position in a file. */
 			fd = *sp;
-			if(fd < 0 || fd > thread->fileTableSz){
+			if(fd < 0 || fd > t->fileTableSz){
 				f->eax = -1;
 				return;
 			}
@@ -409,7 +410,7 @@ syscall_handler (struct intr_frame *f) {
 			break;
 		case SYS_CLOSE:              /* Close a file. */
 			fd = *sp;
-			if(fd < 0 || fd > thread->fileTableSz){
+			if(fd < 0 || fd > t->fileTableSz){
 				f->eax = -1;
 				return;
 			}

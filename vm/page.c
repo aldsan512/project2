@@ -9,7 +9,8 @@
 #include "threads/malloc.h"
 #include "filesys/file.h"
 #include "userprog/pagedir.h"
-int STACK_SIZE = 1<<23;
+#include <stdio.h>
+int STACK_SIZE = 1<<23; 	//18???
 
 /* Computes and returns the hash value for hash element E, given
    auxiliary data AUX. */
@@ -61,6 +62,7 @@ void spt_destroy(struct thread* t){
 		if(s_pte != NULL && s_pte->loc == MEM){
 			releaseFrame(s_pte);
 			pagedir_clear_page(t->pagedir, s_pte->vaddr);
+			//list_remove(node);
 		}
 		node = list_next(node);
 	}
@@ -89,22 +91,23 @@ struct spte* getSPTE(void* vaddr){
 
 //call in load_segment and setup_stack
 //add parameters for every spte member
-struct spte* create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable ){
+struct spte* create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable , int offset){
 	void* vaddress = pg_round_down(vaddr);
 	struct spte* existing_spte = getSPTE(vaddress);
 	if(existing_spte != NULL){
 		//update info???
-		existing_spte->loc = loc;
-		existing_spte->page_read_bytes = read_bytes;
-		existing_spte->page_zero_bytes = zero_bytes;
-		existing_spte->file = file;
-		existing_spte->writeable = writeable;
+		//existing_spte->loc = loc;
+		//existing_spte->page_read_bytes = read_bytes;
+		//existing_spte->page_zero_bytes = zero_bytes;
+		//existing_spte->file = file;
+		//existing_spte->writeable = writeable;
 		return existing_spte;
 		
 	}
 	struct spte* new_spte = (struct spte*) malloc(sizeof(struct spte));
 	struct thread* t = thread_current();
 	
+	new_spte->offset = offset;
 	new_spte->vaddr = vaddress;
 	new_spte->swapLoc = -1;
 	new_spte->t = t;
@@ -138,64 +141,67 @@ bool load_page(void* vaddress, void* esp){
 	//kpage = pg_round_down(kpage);
 	//printf("Loading page\n"); 	//remove when done
 	if (kpage == NULL){
-		printf("No user frames available.\n");
+		//printf("No user frames available.\n");
         return false;
 	}
 	if(s_pte == NULL  || s_pte->loc == EMPTY){
-		printf("Growing stack\n");
-		if(vaddress >= esp + 32 && vaddress <= PHYS_BASE + STACK_SIZE){
+		//printf("Growing stack\n");
+		if(vaddress >= esp - 32 && vaddress >= PHYS_BASE - STACK_SIZE){
 			if(s_pte == NULL){
-				s_pte = create_new_spte(vaddress, MEM, 0, 0, NULL, true);
+				s_pte = create_new_spte(vaddress, MEM, 0, 0, NULL, true, 0);
 			}
+			
 			memset (kpage, 0, PGSIZE);
 			if (!install_page (s_pte->vaddr, kpage, s_pte->writeable)) 
 				{
-					printf("Failed to install page - stack\n");
+					//printf("Failed to install page - stack\n");
 					releaseFrame(s_pte);
 					return false;
 				}
 			s_pte->loc = MEM;
 		} else {
-			printf("Out of stack");
+			//printf("Out of stack");
 			releaseFrame(s_pte);
 			return false;
 		}		
 	}
 	//load page
 	if(s_pte->loc == DISK){
-     printf("Loading from disk\n");
+     //printf("Loading from disk\n");
       /* Load this page. */
       //use same filesys lock from syscall here???
-      if (file_read (s_pte->file, kpage, s_pte->page_read_bytes) != (int) s_pte->page_read_bytes)
+      if (file_read_at(s_pte->file, kpage, s_pte->page_read_bytes, s_pte->offset) != (int) s_pte->page_read_bytes)
         {
-		 printf("Failed to load file\n");
+		 //printf("Failed to load file\n");
          releaseFrame(s_pte);
          return false; 
         }
+      //printf("frame: %#010x\n", kpage);
+     // hex_dump(kpage,kpage,s_pte->page_read_bytes,true);
       memset (kpage + s_pte->page_read_bytes, 0, s_pte->page_zero_bytes);
 
       /* Add the page to the process's address space. */
       if (!install_page (s_pte->vaddr, kpage, s_pte->writeable)) 
         {
-		  printf("Failed to install page - file\n");
+		  //printf("Failed to install page - file\n");
           releaseFrame(s_pte);
 		  return false;
         }
         s_pte->loc = MEM;
-        printf("Loaded from disk\n");
+        //printf("Loaded from disk\n");
 	} else if (s_pte->loc == SWAP){
-		printf("Loading from swap\n");
+		//printf("Loading from swap\n");
 		if(!install_page(s_pte->vaddr, kpage, s_pte->writeable)){
-			printf("Failed to install page - swap\n");
+			//printf("Failed to install page - swap\n");
 			releaseFrame(s_pte);
 			return false;
 		}
 		if(retrieveFromSwap(s_pte, kpage)) {
-			printf("Failed to retrieve from swap\n");
+			//printf("Failed to retrieve from swap\n");
 			releaseFrame(s_pte);
 			return false;
 		}
-		printf("Loaded from swap\n");
+		//printf("Loaded from swap\n");
 		
 		//memset???
 	}

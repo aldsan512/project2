@@ -482,7 +482,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
-	  struct spte* temp = create_new_spte(upage, DISK, page_read_bytes, page_zero_bytes, file, writable); 
+	  struct spte* temp = create_new_spte(upage, DISK, page_read_bytes, page_zero_bytes, file, writable, ofs); 
 		
 //replace this code with allocating new spte entries
 //spte should have read bytes etc.
@@ -512,6 +512,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
+      ofs += page_read_bytes;
       upage += PGSIZE;
     }
   return true;
@@ -523,7 +524,7 @@ static bool setup_stack (void **esp, void* command) {
 	//printf("i am in setup_stack\n");	
  // uint8_t *kpage;
     bool success = true;
-	struct spte* s_pte = create_new_spte(((uint8_t *) PHYS_BASE) - PGSIZE, MEM, 0, 0, NULL, true);
+	struct spte* s_pte = create_new_spte(((uint8_t *) PHYS_BASE) - PGSIZE, MEM, 0, 0, NULL, true, 0);
   //kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   //replace kpage code with adding spte for phys_base-pgsize
   //struct spte* s_pte = create_new_spte(PHYS_BASE - PGSIZE, EMPTY, 0, 0, NULL, true);
@@ -588,7 +589,7 @@ static bool setup_stack (void **esp, void* command) {
 	argPt--;
 	*argPt=0;
 	*esp=argPt;	//is this right return addrress???
-	        //hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
+	       // hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
 
      } 
 	else

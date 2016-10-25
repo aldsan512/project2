@@ -17,6 +17,7 @@ struct spte {
      int page_zero_bytes;
      bool writeable;
      struct file* file;
+     int offset;
 	
 	//bytes read, etc. for load segment
 	//swap index???
@@ -31,7 +32,7 @@ struct spte {
 void spt_init(struct thread* t);
 void spt_destroy(struct thread* t);
 struct spte* getSPTE(void* vadrr);
-struct spte* create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable );
+struct spte* create_new_spte(void* vaddr, location loc, int read_bytes, int zero_bytes, struct file* file, bool writeable, int offset );
 bool load_page(void* vaddr, void* esp);
 
 
