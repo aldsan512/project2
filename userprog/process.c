@@ -588,7 +588,7 @@ static bool setup_stack (void **esp, void* command) {
 	argPt--;
 	*argPt=0;
 	*esp=argPt;	//is this right return addrress???
-	        //hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
+	        hex_dump(*esp,*esp,(int)(PHYS_BASE-(*esp)),true);
 
      } 
 	else

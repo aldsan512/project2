@@ -19,8 +19,8 @@ void initFrame(size_t numF){
 	numFrames=numF-1; 	//put back to -1 later
 	frameTable=(FrameEntry*)malloc(sizeof(FrameEntry)*numFrames);
 	int i = 0;
-	void* framePT = NULL;
-	while(framePT = palloc_get_page(PAL_USER | PAL_ZERO) != NULL){
+	void* framePT = palloc_get_page(PAL_USER | PAL_ZERO);
+	while(framePT != NULL){
 	//for(int i = 0; i < numFrames; i++){
 		//PROBLEM BELOW??? with malloc
 		//frameTable[i]=(FrameEntry*)malloc(sizeof(FrameEntry));
@@ -28,6 +28,7 @@ void initFrame(size_t numF){
 		//frameTable[i]->isModified=false;
 		frameTable[i].pte=NULL;
 		i++;
+		framePT = palloc_get_page(PAL_USER | PAL_ZERO);
 	}
 	
 }
