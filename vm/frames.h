@@ -7,7 +7,7 @@
 typedef struct{
 	void* framePT;
 	struct spte* pte;
-	//bool isModified;
+	bool isModified;
 
 }FrameEntry;
 void initFrame(size_t numFrames);
