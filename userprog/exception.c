@@ -169,7 +169,11 @@ page_fault (struct intr_frame *f)
 		//printf("Not User address\n");
 		//kill(f);
 		exit(-1);
-	} else if (pagedir_get_page(t->pagedir, fault_addr) == NULL){
+	} else if (write && getSPTE(fault_addr)->writeable == false){
+		f->eax = -1;
+	    exit(-1);
+	}
+	else if (pagedir_get_page(t->pagedir, fault_addr) == NULL){
 		//f->eax = -1;
 		//return false;
 		void* esp = (void*) f->esp; 	//if user, not if kernel???
