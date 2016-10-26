@@ -165,7 +165,7 @@ process_exit (void)
 	int i;
 	for(i = 2; i < cur->fileTableSz; i++){
 		if(cur->fileTable[i] != NULL){
-			close(i);
+			file_close(cur->fileTable[i]);
 		}
 	}
 	spt_destroy(cur);

@@ -26,8 +26,17 @@ bool valid_pointer(void* ptr, struct intr_frame* f){
 		f->eax = -1;
 		return false;
 	} else if (pagedir_get_page(t->pagedir, ptr) == NULL){
-		f->eax = -1;
-		return false;
+		//f->eax = -1;
+		//return false;
+		void* esp = (void*) f->esp; 	//if user, not if kernel???
+		//printf("Loading page\n");
+		//void* esp = (void*) thread_current()->stack; 	//???
+		if(load_page(ptr, esp)) {
+			return true;	//can't load page			
+		} else {
+			f->eax = -1;
+			return false;
+		}
 	} else {
 		return true;
 	}
