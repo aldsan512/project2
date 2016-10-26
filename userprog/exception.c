@@ -159,6 +159,7 @@ page_fault (struct intr_frame *f)
 	  user = (f->error_code & PF_U) != 0;
 	  
 	  struct thread* t = thread_current();
+	  struct spte* s_pte = getSPTE(fault_addr);
 	if(fault_addr == NULL){
 		f->eax = -1;
 		//printf("NULL address\n");
@@ -169,12 +170,12 @@ page_fault (struct intr_frame *f)
 		//printf("Not User address\n");
 		//kill(f);
 		exit(-1);
-	} else if (write && getSPTE(fault_addr)->writeable == false){
+	} else if (write && s_pte != NULL && !s_pte->writeable){
 		f->eax = -1;
-	    exit(-1);
+	   exit(-1);
 	}
 	else if (pagedir_get_page(t->pagedir, fault_addr) == NULL){
-		//f->eax = -1;
+		//f->eax = -1;  
 		//return false;
 		void* esp = (void*) f->esp; 	//if user, not if kernel???
 		if(!user){

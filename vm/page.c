@@ -116,7 +116,7 @@ struct spte* create_new_spte(void* vaddr, location loc, int read_bytes, int zero
 	new_spte->page_zero_bytes = zero_bytes;
 	new_spte->file = file;
 	new_spte->writeable = writeable;
-	
+	new_spte->pinned = false;
 	list_push_back(&t->spt, &new_spte->elem);
 	return new_spte;
 }
@@ -137,18 +137,18 @@ bool load_page(void* vaddress, void* esp){
 		//printf("Adress already mapped\n");
 		//return true;
 	//}
-	uint8_t* kpage = getFrame(s_pte);
-	//kpage = pg_round_down(kpage);
-	//printf("Loading page\n"); 	//remove when done
-	if (kpage == NULL){
-		//printf("No user frames available.\n");
-        return false;
-	}
+	if(s_pte != NULL) s_pte->pinned = true;
 	if(s_pte == NULL  || s_pte->loc == EMPTY){
 		//printf("Growing stack\n");
 		if(vaddress >= esp - 32 && vaddress >= PHYS_BASE - STACK_SIZE){
 			if(s_pte == NULL){
 				s_pte = create_new_spte(vaddress, MEM, 0, 0, NULL, true, 0);
+				s_pte->pinned = true;
+			}
+			uint8_t* kpage = getFrame(s_pte);
+			if (kpage == NULL){
+				//printf("No user frames available.\n");
+				return false;
 			}
 			
 			memset (kpage, 0, PGSIZE);
@@ -158,12 +158,18 @@ bool load_page(void* vaddress, void* esp){
 					releaseFrame(s_pte);
 					return false;
 				}
+			s_pte->pinned = false; 	//???
 			s_pte->loc = MEM;
 		} else {
 			//printf("Out of stack");
 			releaseFrame(s_pte);
 			return false;
 		}		
+	}
+	uint8_t* kpage = getFrame(s_pte);
+	if (kpage == NULL){
+		//printf("No user frames available.\n");
+        return false;
 	}
 	//load page
 	if(s_pte->loc == DISK){
@@ -187,6 +193,7 @@ bool load_page(void* vaddress, void* esp){
           releaseFrame(s_pte);
 		  return false;
         }
+        s_pte->pinned = false; 	//needed???
         s_pte->loc = MEM;
         //printf("Loaded from disk\n");
 	} else if (s_pte->loc == SWAP){
@@ -196,6 +203,7 @@ bool load_page(void* vaddress, void* esp){
 			releaseFrame(s_pte);
 			return false;
 		}
+		s_pte->pinned = false;
 		if(retrieveFromSwap(s_pte, kpage)) {
 			//printf("Failed to retrieve from swap\n");
 			releaseFrame(s_pte);

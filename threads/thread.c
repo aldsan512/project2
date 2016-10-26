@@ -469,11 +469,11 @@ init_thread (struct thread *t, const char *name, int priority)
 	t->loadSuccess=true;
 	t->fileTable[0]=0;	
 	t->fileTable[1]=1;
-	t->nextfd=2;
+	//t->nextfd=2;
 	t->fileTableSz=30;
 	t->exit_status=0;
 	list_init(&(t->children));
-	t->isLocked=true; 
+	//t->isLocked=true; 
 //	t->wait_lock = (struct semaphore*) palloc_get_page(0);
 	sema_init(&t->dead_lock,0);
 	sema_init(&t->wait_lock,0);

@@ -5,6 +5,7 @@
 #include "threads/malloc.h"
 #include <string.h>
 #include "threads/synch.h"
+#include "threads/thread.h"
 //store_to_swap takes address of frame
 //should return which swap index it used
 //it should copy over the data in the frame to each block (8 blocks per swap index i think) to the swap index
@@ -35,6 +36,8 @@ void* swapFrame(struct spte* victim,FrameEntry* frameEntry,struct spte* newGuy){
 			}
 			//anything else we need to update on evicted frame??
 			victim->loc=SWAP;
+			//victim->swapLoc = i;
+			//pagedir_clear_page(victim->t->pagedir, victim->vaddr);
 			memset (frameEntry->framePT,0,PGSIZE);
 			frameEntry->pte=newGuy;
 			newGuy->loc=MEM;

@@ -158,7 +158,7 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-  	cur->isLocked=false;
+  	//cur->isLocked=false;
   	if(cur->myFile != NULL){
   	  file_close(cur->myFile);
 	}

@@ -18,6 +18,7 @@ struct spte {
      bool writeable;
      struct file* file;
      int offset;
+     bool pinned;
 	
 	//bytes read, etc. for load segment
 	//swap index???

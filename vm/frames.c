@@ -60,27 +60,37 @@ void* evictFrame(struct spte* owner){
 		if(i==numFrames){
 			//roll over//
 			i=0;
+			//if(frameTable[i].pte->pinned){
+				//continue;
+			//}
 			if(pagedir_is_dirty(frameTable[i].pte->t->pagedir,frameTable[i].pte->vaddr)){
 				swapFrame(frameTable[i].pte, &frameTable[i],owner);	
 			}
 			else{
+				//frameTable[i].pte->loc = DISK;
+				//pagedir_clear_page(frameTable[i].pte->t->pagedir, frameTable[i].pte->vaddr);
 				frameTable[i].pte=owner;
+				//memset (frameTable[i].framePT,0,PGSIZE);
 				return frameTable[i].framePT;
 			}
 		}
+		//if(frameTable[i].pte->pinned){
+		//	continue;
+		//}
 		if(pagedir_is_accessed(frameTable[i].pte->t->pagedir,frameTable[i].pte->vaddr)){
 			//if it has been accessed set accessed to 0
 			pagedir_set_accessed(frameTable[i].pte->t->pagedir,frameTable[i].pte->vaddr,0);
 		}
-		//page has been accessed
+		//page has not been accessed
 		else if( pagedir_is_dirty(frameTable[i].pte->t->pagedir,frameTable[i].pte->vaddr)){
 				//page is dirty need to put it in swap table
 				swapFrame(frameTable[i].pte, &frameTable[i],owner);					
-		}
-		else{
+		} else {
 				//frame is code just evict and read from disk later	
                 //page_dir_clear_page on old page that owned it 
                 //install_page
+                //frameTable[i].pte->loc = DISK;
+				//pagedir_clear_page(frameTable[i].pte->t->pagedir, frameTable[i].pte->vaddr);
 				frameTable[i].pte=owner;
 				memset (frameTable[i].framePT,0,PGSIZE);
 				return frameTable[i].framePT;

@@ -96,12 +96,12 @@ struct thread
     struct list_elem elem;              /* List element. */
 	bool loadSuccess;
 	struct file* fileTable[30];	//i think this should be 128???
-	int nextfd;	//not needed, this isn't really a stack
+	//int nextfd;	//not needed, this isn't really a stack
 	int fileTableSz; 	//is this set anywhere???
 	int exit_status;
 	struct list children;
 	struct list_elem child;
-	bool isLocked;
+	//bool isLocked;
 	struct semaphore wait_lock;
 	struct semaphore dead_lock;
 	struct file* myFile;
