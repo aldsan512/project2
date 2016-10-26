@@ -36,8 +36,8 @@ void* swapFrame(struct spte* victim,FrameEntry* frameEntry,struct spte* newGuy){
 			}
 			//anything else we need to update on evicted frame??
 			victim->loc=SWAP;
-			//victim->swapLoc = i;
-			//pagedir_clear_page(victim->t->pagedir, victim->vaddr);
+			victim->swapLoc = i;
+			pagedir_clear_page(victim->t->pagedir, victim->vaddr);
 			memset (frameEntry->framePT,0,PGSIZE);
 			frameEntry->pte=newGuy;
 			newGuy->loc=MEM;
