@@ -14,6 +14,7 @@
 static FrameEntry* frameTable;
 static int numFrames;
 static struct lock myLock;
+int clock=0;
 void initFrame(size_t numF){	
 	lock_init(&myLock);								
 	numFrames=numF-1; 	//put back to -1 later
@@ -56,47 +57,59 @@ bool releaseFrame(struct spte* owner){
 }
 void* evictFrame(struct spte* owner){
 	//should we be setting the actual pte accessed bits or setting a boolean in the fte???
-	for(int i=0;i<=numFrames;i++){
-		if(i==numFrames){
+	//i=clock;
+	//numFrames
+//	int start = clock;
+//	bool around = false;
+//	int i = clock;
+	while(true){
+	/*	if(i == start && around){
 			//roll over//
-			i=0;
-			if(frameTable[i].pte->pinned){
+			if(frameTable[clock].pte->pinned){
+				i = (i + 1) % numFrames;
 				continue;
 			}
 			if(pagedir_is_dirty(frameTable[i].pte->t->pagedir,frameTable[i].pte->vaddr)){
-				swapFrame(frameTable[i].pte, &frameTable[i],owner);	
+				clock = i;
+				return swapFrame(frameTable[i].pte, &frameTable[i],owner);	
+
 			}
 			else{
 				frameTable[i].pte->loc = DISK;
 				pagedir_clear_page(frameTable[i].pte->t->pagedir, frameTable[i].pte->vaddr);
 				frameTable[i].pte=owner;
 				memset (frameTable[i].framePT,0,PGSIZE);
+				clock = i;
 				return frameTable[i].framePT;
 			}
-		}
-		if(frameTable[i].pte->pinned){
-			continue;
-		}
-		if(pagedir_is_accessed(frameTable[i].pte->t->pagedir,frameTable[i].pte->vaddr)){
+		}*/
+	//	around = true;
+		//if(frameTable[clock].pte->pinned){
+		//	clock = (clock + 1) % numFrames;
+		//	continue;
+		//}
+		if(pagedir_is_accessed(frameTable[clock].pte->t->pagedir,frameTable[clock].pte->vaddr)){
 			//if it has been accessed set accessed to 0
-			pagedir_set_accessed(frameTable[i].pte->t->pagedir,frameTable[i].pte->vaddr,0);
+			pagedir_set_accessed(frameTable[clock].pte->t->pagedir,frameTable[clock].pte->vaddr,0);
 		}
 		//page has not been accessed
-		else if( pagedir_is_dirty(frameTable[i].pte->t->pagedir,frameTable[i].pte->vaddr)){
+		else if( pagedir_is_dirty(frameTable[clock].pte->t->pagedir,frameTable[clock].pte->vaddr)|| frameTable[clock].pte->loc==SWAP){
 				//page is dirty need to put it in swap table
-				swapFrame(frameTable[i].pte, &frameTable[i],owner);					
+				//clock = i;
+				return swapFrame(frameTable[clock].pte, &frameTable[clock],owner);					
 		} else {
 				//frame is code just evict and read from disk later	
                 //page_dir_clear_page on old page that owned it 
                 //install_page
-                frameTable[i].pte->loc = DISK;
-				pagedir_clear_page(frameTable[i].pte->t->pagedir, frameTable[i].pte->vaddr);
-				frameTable[i].pte=owner;
-				memset (frameTable[i].framePT,0,PGSIZE);
-				return frameTable[i].framePT;
+                frameTable[clock].pte->loc = DISK;
+				pagedir_clear_page(frameTable[clock].pte->t->pagedir, frameTable[clock].pte->vaddr);
+				frameTable[clock].pte=owner;
+				memset (frameTable[clock].framePT,0,PGSIZE);
+				//clock = i;
+				return frameTable[clock].framePT;
 		}
  
-
+		 clock= (clock + 1) % numFrames;
 	}
 }
 

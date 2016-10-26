@@ -27,11 +27,11 @@ void* swapFrame(struct spte* victim,FrameEntry* frameEntry,struct spte* newGuy){
 		if(swapTable[i].isOccupied==false){
 			//copy data in phys memory onto the swap area. one page=8 swap sectors
 			swapTable[i].isOccupied=true;
-			block_sector_t sector=i*8;
+			block_sector_t sector=i*SECTORS_PER_PAGE;
 			char* buffer=(char*)frameEntry->framePT;
-			for(int j=0;j<8;j++){
+			for(int j=0;j<SECTORS_PER_PAGE;j++){
 				block_write(swapArea,sector,(void*)buffer);
-				buffer=buffer+512;
+				buffer=buffer+BLOCK_SECTOR_SIZE;
 				sector++;
 			}
 			//anything else we need to update on evicted frame??
@@ -55,15 +55,15 @@ bool retrieveFromSwap(struct spte* retrieved, void* framePT){
 		lock_release(&lock);
 		return false;
 	}
-	block_sector_t sector=retrieved->swapLoc*8;
+	block_sector_t sector=retrieved->swapLoc*SECTORS_PER_PAGE;
 	char* buffer=(char*)framePT;
-	for(int i=0;i<8;i++){
+	for(int i=0;i<SECTORS_PER_PAGE;i++){
 		block_read(swapArea,sector,buffer);
-		buffer=buffer+512;
+		buffer=buffer+BLOCK_SECTOR_SIZE;
 		sector++;
 	}
 	swapTable[retrieved->swapLoc].isOccupied=false;
-	retrieved->loc=MEM;\
+	retrieved->loc=MEM;
 	lock_release(&lock);
 	return true;
 }
